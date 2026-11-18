@@ -1,0 +1,85 @@
+{
+  "name": "deltaos",
+  "productName": "DeltaOS",
+  "version": "1.0.0",
+  "description": "DeltaOS - a glassmorphic simulated desktop operating system with a built-in Claude assistant",
+  "author": "DeltaOS",
+  "license": "MIT",
+  "main": "dist/main/main.js",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.electron.json",
+    "build:renderer": "vite build",
+    "build:electron": "node scripts/build-electron.mjs",
+    "build": "npm run typecheck && npm run build:renderer && npm run build:electron",
+    "start": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win portable --x64 && node scripts/copy-exe.mjs",
+    "dist:linux-dir": "npm run build && electron-builder --linux dir",
+    "icon": "node scripts/make-icon.cjs"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "^45.3.4",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
+    "lucide-react": "^1.75.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "resedit": "^3.1.1",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "zod": "^4.6.7"
+  },
+  "build": {
+    "appId": "com.deltaos.desktop",
+    "productName": "DeltaOS",
+    "copyright": "\u00a9 2026 DeltaOS",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "electronLanguages": [
+      "en-US"
+    ],
+    "afterPack": "scripts/after-pack.cjs",
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "DeltaOS.exe",
+      "unpackDirName": "DeltaOS",
+      "requestExecutionLevel": "user"
+    },
+    "linux": {
+      "target": [
+        "dir"
+      ],
+      "icon": "build/icon.png",
+      "executableName": "deltaos"
+    },
+    "compression": "maximum"
+  }
+}
