@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowUp, ChevronRight, Code2, Download, FileCode2, FilePlus, FolderPlus, HardDrive, Home, Image, LayoutGrid,
-  List, Monitor, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
+  List, Monitor, Feather, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
 } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { notify, setFs, useOS } from "../os/store";
 import { openApp, updateWindow } from "../os/windows";
 import { showContextMenu } from "../os/contextMenu";
+import { openPath } from "../os/open";
 import {
   basename, dirname, formatSize, FsError, getNode, HOME, listDir, mkdir, move, nodeSize, remove, rename, uniqueName, writeFile, extname,
   type VDir, type VNode,
@@ -82,7 +83,7 @@ export function FileExplorer({ win }: AppProps) {
   };
 
   const pathOf = (name: string) => (cwd === "/" ? `/${name}` : `${cwd}/${name}`);
-  const openEntry = (name: string, n: VNode) => (n.type === "dir" ? navigate(pathOf(name)) : openApp("editor", { path: pathOf(name) }));
+  const openEntry = (name: string, n: VNode) => (n.type === "dir" ? navigate(pathOf(name)) : openPath(pathOf(name)));
 
   const createNew = (kind: "folder" | "file") =>
     safe(() => {
@@ -137,7 +138,10 @@ export function FileExplorer({ win }: AppProps) {
     showContextMenu(e, [
       { label: "Open", icon: ExternalLink, onClick: () => openEntry(name, n) },
       ...(n.type === "file"
-        ? [{ label: "Open with Code", icon: FileCode2, onClick: () => openApp("editor", { path: pathOf(name) }) }]
+        ? [
+            { label: "Open with Code", icon: FileCode2, onClick: () => openApp("editor", { path: pathOf(name) }) },
+            { label: "Open with Folio", icon: Feather, onClick: () => openApp("folio", { path: pathOf(name) }) },
+          ]
         : [
             { label: "Open in new window", icon: ExternalLink, onClick: () => openApp("files", { cwd: pathOf(name) }) },
             { label: "Open in Terminal", icon: SquareTerminal, onClick: () => openApp("terminal", { cwd: pathOf(name) }) },

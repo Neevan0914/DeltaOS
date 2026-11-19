@@ -3,7 +3,7 @@ import { ACCENTS, accentName, resolveAccent } from "./theme";
 import { WALLPAPERS, wallpaperById } from "./wallpapers";
 import { getState, notify, updateSettings, type AppId, type TerminalTheme } from "./store";
 
-export const APP_IDS: AppId[] = ["terminal", "files", "editor", "settings", "calculator", "about"];
+export const APP_IDS: AppId[] = ["terminal", "files", "browser", "editor", "folio", "settings", "calculator", "about"];
 
 export function setTheme(mode: "dark" | "light") {
   updateSettings({ theme: mode });

@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { FolderPlus, FilePlus, Pencil, Trash2, ExternalLink, SquareTerminal, Palette, FileCode2, RefreshCw } from "lucide-react";
+import { Feather, Globe, FolderPlus, FilePlus, Pencil, Trash2, ExternalLink, SquareTerminal, Palette, FileCode2, RefreshCw } from "lucide-react";
 import { APPS } from "../apps/registry";
 import { notify, setFs, useOS, type AppId } from "../os/store";
 import { openApp, TASKBAR_H } from "../os/windows";
 import { FsError, HOME, getNode, listDir, mkdir, remove, rename, uniqueName, writeFile, type VDir, type VNode } from "../os/vfs";
 import { showContextMenu } from "../os/contextMenu";
+import { openPath } from "../os/open";
 import { AppIcon } from "./AppIcon";
 import { FileGlyph } from "../lib/fileIcons";
 import { InlineInput } from "./ui";
 
 const DESKTOP = `${HOME}/Desktop`;
-const DESKTOP_APPS: AppId[] = ["files", "terminal", "editor", "settings"];
+const DESKTOP_APPS: AppId[] = ["files", "browser", "terminal", "editor", "folio", "settings"];
 const CELL_W = 92;
 const CELL_H = 100;
 
@@ -49,7 +50,7 @@ export function DesktopIcons() {
   const open = (e: Entry) => {
     if (e.kind === "app") openApp(e.app);
     else if (e.node.type === "dir") openApp("files", { cwd: e.path });
-    else openApp("editor", { path: e.path });
+    else openPath(e.path);
   };
 
   const createNew = (kind: "folder" | "file") =>
@@ -92,7 +93,9 @@ export function DesktopIcons() {
           { label: "New Text Document", icon: FilePlus, onClick: () => createNew("file") },
           { separator: true },
           { label: "Open in Terminal", icon: SquareTerminal, onClick: () => openApp("terminal", { cwd: DESKTOP }) },
+          { label: "New Document in Folio", icon: Feather, onClick: () => openApp("folio") },
           { label: "Open Code Editor", icon: FileCode2, onClick: () => openApp("editor") },
+          { label: "Open Tesseract", icon: Globe, onClick: () => openApp("browser") },
           { label: "Refresh", icon: RefreshCw, onClick: () => setSelected(null) },
           { separator: true },
           { label: "Personalize", icon: Palette, onClick: () => openApp("settings", { section: "appearance" }) },

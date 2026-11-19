@@ -8,6 +8,7 @@ import { ACCENTS } from "./theme";
 import { WALLPAPERS } from "./wallpapers";
 import { FsError, getNode, HOME, listDir, mkdir, nodeSize, resolvePath, writeFile } from "./vfs";
 import { APPS } from "../apps/registry";
+import { toUrl } from "./open";
 
 /* --------------------------------- state -------------------------------- */
 
@@ -142,10 +143,10 @@ const TOOLS = {
     label: () => "Updated preferences",
   }),
   open_app: tool({
-    description: `Open an application window. Apps: ${APP_IDS.map((a) => `${a} (${APPS[a].title})`).join(", ")}. For "editor" or "files" you may pass a path to open.`,
+    description: `Open an application window. Apps: ${APP_IDS.map((a) => `${a} (${APPS[a].title})`).join(", ")}. "folio" is the writing app for documents (.md, .txt); "editor" (Code) is for source code; "browser" is the Tesseract web browser. For "editor", "folio" or "files" you may pass a path to open.`,
     schema: z.object({
       app: appEnum,
-      path: z.string().optional().describe("Optional file (editor) or folder (files) path, e.g. ~/Documents/notes.txt"),
+      path: z.string().optional().describe("Optional file (editor/folio) or folder (files) path, e.g. ~/Documents/notes.txt"),
     }),
     run: ({ app, path }) => {
       if (path) {
@@ -153,12 +154,22 @@ const TOOLS = {
         const node = getNode(getState().fs, p);
         if (!node) throw new FsError(`No such file or directory: ${p}`);
         if (app === "files" && node.type !== "dir") throw new FsError(`Not a folder: ${p}`);
-        if (app === "editor" && node.type !== "file") throw new FsError(`Not a file: ${p}`);
+        if ((app === "editor" || app === "folio") && node.type !== "file") throw new FsError(`Not a file: ${p}`);
         openApp(app, app === "files" ? { cwd: p } : { path: p });
       } else openApp(app);
       return `Opened ${APPS[app].title}.`;
     },
     label: ({ app }) => `Opened ${APPS[app]?.title ?? app}`,
+  }),
+  open_url: tool({
+    description: "Open a web page in the Tesseract browser. Accepts a full URL, a domain like example.com, or search words (searched with the user's search engine).",
+    schema: z.object({ url: z.string().describe("URL, domain, or search query") }),
+    run: ({ url }) => {
+      const target = toUrl(url, getState().settings.browser.search);
+      openApp("browser", { url: target });
+      return `Opened ${target} in Tesseract.`;
+    },
+    label: ({ url }) => `Opened ${url.replace(/^https?:\/\//, "").slice(0, 40)}`,
   }),
   close_app: tool({
     description: "Close every open window of an application.",
@@ -242,7 +253,8 @@ Guidelines:
 - When a request is vague ("make it cozy", "something more vibrant"), pick sensible values yourself and say what you chose.
 - Check the current setup with get_system_state when the answer depends on it.
 - Keep replies short and friendly. Use light markdown (bold, lists, inline code) only when it helps.
-- Built-in apps: Files, Terminal (commands: help, ls, cd, cat, mkdir, clear, theme, …), Code editor, Settings, Calculator, About. The keyboard shortcut to open you is Ctrl+Space.`;
+- Built-in apps: Files, Tesseract (web browser), Terminal (commands: help, ls, cd, cat, mkdir, clear, theme, …), Code (code editor for Python, C++, HTML, JavaScript, TypeScript and C#; it can run JavaScript/TypeScript and preview HTML), Folio (writing app for Markdown and text documents), Settings, Calculator, About. The keyboard shortcut to open you is Ctrl+Space.
+- Put prose (notes, letters, lists) in .md files so they open in Folio; put programs in source files with the right extension so they open in Code.`;
 
 function runTool(name: string, input: unknown): { content: string; ok: boolean; label: string } {
   const def = (TOOLS as Record<string, ToolDef<z.ZodType>>)[name];
@@ -394,7 +406,8 @@ async function offlineReply(text: string) {
 
   const appWords: Record<string, AppId> = {
     terminal: "terminal", shell: "terminal", console: "terminal", files: "files", explorer: "files", finder: "files", folder: "files",
-    editor: "editor", code: "editor", notepad: "editor", settings: "settings", preferences: "settings",
+    editor: "editor", code: "editor", ide: "editor", folio: "folio", notepad: "folio", writer: "folio", notes: "folio",
+    browser: "browser", tesseract: "browser", web: "browser", internet: "browser", settings: "settings", preferences: "settings",
     calculator: "calculator", calc: "calculator", about: "about",
   };
   const verbOpen = /\b(open|launch|start|run|show)\b/.test(q);
@@ -406,6 +419,12 @@ async function offlineReply(text: string) {
       }
     }
   }
+
+  // "go to github.com", "search the web for cats", "look up rust traits"
+  const site = text.match(/\b(?:go to|visit|open|browse(?: to)?)\s+((?:https?:\/\/)?[\w-]+(?:\.[\w-]+)+\S*)/i)?.[1];
+  const search = text.match(/\b(?:search(?: the web| online| google)?(?: for)?|look up|google)\s+(.+)/i)?.[1];
+  if (site) act("open_url", { url: site });
+  else if (search && !tools.length) act("open_url", { url: search.replace(/[?.!]+$/, "") });
 
   await sleep(350);
   let reply: string;

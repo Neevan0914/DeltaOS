@@ -1,11 +1,15 @@
-import { Calculator, FolderOpen, Info, Settings2, SquareTerminal, FileCode2, type LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+import { Calculator, FolderOpen, Info, Settings2, SquareTerminal, FileCode2, Feather } from "lucide-react";
 import type { AppId } from "../os/store";
+import { TesseractIcon } from "../components/TesseractIcon";
+
+type IconComponent = ComponentType<{ size?: number; color?: string; strokeWidth?: number; className?: string }>;
 
 export interface AppMeta {
   id: AppId;
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   gradient: string;
   size: { w: number; h: number };
   minSize: { w: number; h: number };
@@ -31,6 +35,26 @@ export const APPS: Record<AppId, AppMeta> = {
     gradient: "linear-gradient(135deg, #3f3f46 0%, #0a0a0f 100%)",
     size: { w: 780, h: 480 },
     minSize: { w: 420, h: 260 },
+    singleton: false,
+  },
+  browser: {
+    id: "browser",
+    title: "Tesseract",
+    description: "A browser built to run fast on anything",
+    icon: TesseractIcon,
+    gradient: "linear-gradient(135deg, #22d3ee 0%, #6366f1 55%, #7c3aed 100%)",
+    size: { w: 1120, h: 720 },
+    minSize: { w: 520, h: 360 },
+    singleton: false,
+  },
+  folio: {
+    id: "folio",
+    title: "Folio",
+    description: "Distraction-free writing",
+    icon: Feather,
+    gradient: "linear-gradient(135deg, #fda4af 0%, #e11d48 100%)",
+    size: { w: 860, h: 640 },
+    minSize: { w: 480, h: 340 },
     singleton: false,
   },
   editor: {
@@ -75,4 +99,4 @@ export const APPS: Record<AppId, AppMeta> = {
   },
 };
 
-export const PINNED: AppId[] = ["files", "terminal", "editor", "settings", "calculator"];
+export const PINNED: AppId[] = ["files", "browser", "terminal", "editor", "folio", "settings", "calculator"];

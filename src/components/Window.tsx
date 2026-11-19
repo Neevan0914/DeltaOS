@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 import { Minus, Square, X, Copy } from "lucide-react";
 import { APPS } from "../apps/registry";
 import { type WinState, useOS } from "../os/store";
@@ -15,6 +15,12 @@ export function Window({ win, children }: { win: WinState; children: ReactNode }
   const ref = useRef<HTMLDivElement>(null);
   const meta = APPS[win.app];
   const fullBleed = win.maximized || !!win.snapped;
+
+  useEffect(() => {
+    if (!interacting) return;
+    document.body.classList.add("wm-interacting");
+    return () => document.body.classList.remove("wm-interacting");
+  }, [interacting]);
 
   const startDrag = (e: RPointerEvent) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest("[data-nodrag]")) return;

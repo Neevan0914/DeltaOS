@@ -28,7 +28,17 @@ export function Desktop({ onPower }: { onPower: (p: Phase | "lock") => void }) {
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // System shortcuts pressed while a web page has focus arrive from the main process.
+    const off = window.deltaos?.onBrowserEvent((ev) => {
+      if (ev.type !== "shortcut") return;
+      if (ev.combo === "ctrl+space") toggleAssistant();
+      if (ev.combo === "ctrl+alt+t") openApp("terminal");
+      if (ev.combo === "ctrl+alt+e") openApp("files");
+    });
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      off?.();
+    };
   }, []);
 
   return (

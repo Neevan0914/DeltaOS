@@ -186,6 +186,9 @@ DeltaOS is a simulated desktop operating system.
 
 ## Things to try
 - Open **Terminal** and type \`help\`
+- Browse the web with **Tesseract**
+- Write in **Folio** — this document is open in it right now
+- Pick a language in **Code** (Python, C++, HTML, JavaScript, TypeScript, C#) and press **Run** on JS/TS
 - Press **Ctrl+Space** to summon the Claude assistant
 - Ask Claude: "switch to light mode and use the Sunset wallpaper"
 - Right-click the desktop to create files and folders
@@ -226,6 +229,36 @@ def fib(n: int) -> int:
 
 if __name__ == "__main__":
     print([fib(i) for i in range(15)])
+`),
+          "hello.cpp": file(`#include <iostream>
+
+int main() {
+    std::cout << "Hello from C++ on DeltaOS!" << std::endl;
+    return 0;
+}
+`),
+          "Program.cs": file(`using System;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello from C# on DeltaOS!");
+    }
+}
+`),
+          "index.html": file(`<!doctype html>
+<html>
+  <body style="font-family: system-ui; padding: 2rem">
+    <h1>Hello from HTML</h1>
+    <p>Open this file in Code and press the eye icon for a live preview.</p>
+  </body>
+</html>
+`),
+          "app.js": file(`// Press Run in Code to execute this file.
+const nums = [3, 1, 4, 1, 5, 9, 2, 6];
+console.log("sorted:", [...nums].sort((a, b) => a - b));
+console.log("sum:", nums.reduce((a, b) => a + b, 0));
 `),
           "style.css": file(`:root {
   --accent: #7c5cff;

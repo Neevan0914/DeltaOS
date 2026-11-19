@@ -4,6 +4,7 @@ import { getState, notify, setFs, useOS, type AppId, type TerminalTheme } from "
 import { closeWindow, openApp, updateWindow } from "../os/windows";
 import { APP_IDS, findWallpaper, setAccent, setTerminalTheme, setTheme, setWallpaper } from "../os/actions";
 import { sendMessage, toggleAssistant } from "../os/assistant";
+import { openPath } from "../os/open";
 import { ACCENTS, accentName } from "../os/theme";
 import { WALLPAPERS, wallpaperById } from "../os/wallpapers";
 import {
@@ -42,6 +43,8 @@ const COMMANDS: Record<string, string> = {
   theme: "Change appearance  (theme dark|light | theme accent <color> | theme wallpaper <name> | theme terminal <name>)",
   open: "Open an app or a path  (open files | open ~/Documents)",
   edit: "Open a file in the Code editor",
+  write: "Open a document in Folio  (write [file])",
+  browse: "Open a website in Tesseract  (browse <url or search>)",
   ask: "Ask Claude a question  (ask <question>)",
   neofetch: "Show system information",
   whoami: "Print the current user",
@@ -290,6 +293,10 @@ export function Terminal({ win }: AppProps) {
         case "open": {
           const target = pos[0];
           if (!target) throw new FsError("open: usage: open <app|path>");
+          if (/^(https?:\/\/|www\.)/i.test(target)) {
+            openApp("browser", { url: target });
+            break;
+          }
           if ((APP_IDS as string[]).includes(target.toLowerCase())) {
             openApp(target.toLowerCase() as AppId);
             break;
@@ -298,7 +305,27 @@ export function Terminal({ win }: AppProps) {
           const n = getNode(fs(), p);
           if (!n) throw new FsError(`open: ${target}: No such file, directory or app`);
           if (n.type === "dir") openApp("files", { cwd: p });
-          else openApp("editor", { path: p });
+          else openPath(p);
+          break;
+        }
+        case "write":
+        case "folio": {
+          if (!pos[0]) {
+            openApp("folio");
+            break;
+          }
+          const p = abs(pos[0]);
+          const n = getNode(fs(), p);
+          if (n?.type === "dir") throw new FsError(`${cmd}: ${pos[0]}: Is a directory`);
+          if (!n) setFs((r) => writeFile(r, p, ""));
+          openApp("folio", { path: p });
+          break;
+        }
+        case "browse":
+        case "tesseract": {
+          const q = pos.join(" ");
+          openApp("browser", q ? { url: q } : {});
+          if (q) output = `Opening ${q} in Tesseract…`;
           break;
         }
         case "edit":
@@ -448,6 +475,8 @@ export function Terminal({ win }: AppProps) {
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
+                // Stop the Enter from reaching an app this command opens and focuses.
+                e.preventDefault();
                 run(input);
                 setInput("");
                 setHistIdx(null);

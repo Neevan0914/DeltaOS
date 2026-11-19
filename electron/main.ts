@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, session, shell, type WebContents } from "electron";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as claude from "./claude";
@@ -28,7 +28,19 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: false,
+      webviewTag: true,
     },
+  });
+
+  // Lock down every <webview> (Tesseract browser tabs, Code previews) before it attaches.
+  win.webContents.on("will-attach-webview", (e, prefs, params) => {
+    delete prefs.preload;
+    prefs.nodeIntegration = false;
+    prefs.nodeIntegrationInSubFrames = false;
+    prefs.contextIsolation = true;
+    prefs.sandbox = true;
+    prefs.webSecurity = true;
+    if (params.src && !/^(https?:|data:|about:blank)/i.test(params.src)) e.preventDefault();
   });
 
   win.once("ready-to-show", () => win?.show());
@@ -76,6 +88,52 @@ ipcMain.handle("claude:clear-key", () => claude.clearKey());
 ipcMain.handle("claude:turn", (e, req: ClaudeTurnRequest) => claude.turn(req, e.sender));
 ipcMain.on("claude:abort", (_e, id: string) => claude.abort(id));
 
+/* ------------------------- Tesseract browser guests ------------------------- */
+
+const SHORTCUTS = new Set(["ctrl+t", "ctrl+w", "ctrl+l", "ctrl+r", "f5", "alt+arrowleft", "alt+arrowright", "ctrl+space", "ctrl+alt+t", "ctrl+alt+e", "ctrl+tab", "ctrl+shift+tab", "ctrl+d", "escape"]);
+
+function wireGuest(guest: WebContents) {
+  const host = () => win?.webContents;
+  guest.setWindowOpenHandler(({ url }) => {
+    if (/^https?:/i.test(url)) host()?.send("browser:event", { type: "open-tab", guestId: guest.id, url });
+    return { action: "deny" };
+  });
+  guest.on("before-input-event", (e, input) => {
+    if (input.type !== "keyDown") return;
+    const combo = [input.control || input.meta ? "ctrl" : "", input.alt ? "alt" : "", input.shift ? "shift" : "", input.key === " " ? "space" : input.key.toLowerCase()]
+      .filter(Boolean)
+      .join("+");
+    if (!SHORTCUTS.has(combo)) return;
+    if (combo === "escape" && !guest.isLoading()) return;
+    e.preventDefault();
+    host()?.send("browser:event", { type: "shortcut", guestId: guest.id, combo });
+  });
+  guest.on("context-menu", (_e, p) => {
+    host()?.send("browser:event", {
+      type: "context-menu",
+      guestId: guest.id,
+      x: p.x,
+      y: p.y,
+      linkURL: p.linkURL,
+      srcURL: p.mediaType === "image" ? p.srcURL : "",
+      selectionText: p.selectionText,
+      isEditable: p.isEditable,
+    });
+  });
+}
+
+app.on("web-contents-created", (_e, contents) => {
+  if (contents.getType() === "webview") wireGuest(contents);
+});
+
+function setupBrowserSession() {
+  const ses = session.fromPartition("persist:tesseract");
+  // Present as plain Chrome so sites don't serve degraded pages to "Electron".
+  ses.setUserAgent(ses.getUserAgent().replace(/\s(Electron|deltaos|DeltaOS)\/\S+/g, ""));
+  const allowed = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock"]);
+  ses.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
+}
+
 const single = app.requestSingleInstanceLock();
 if (!single) {
   app.quit();
@@ -87,6 +145,9 @@ if (!single) {
     }
   });
   Menu.setApplicationMenu(null);
-  app.whenReady().then(createWindow);
+  app.whenReady().then(() => {
+    setupBrowserSession();
+    createWindow();
+  });
   app.on("window-all-closed", () => app.quit());
 }

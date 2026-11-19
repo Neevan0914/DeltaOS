@@ -28,6 +28,20 @@ export interface ClaudeStatus {
   encrypted: boolean;
 }
 
+export type BrowserEvent =
+  | { type: "open-tab"; guestId: number; url: string }
+  | { type: "shortcut"; guestId: number; combo: string }
+  | {
+      type: "context-menu";
+      guestId: number;
+      x: number;
+      y: number;
+      linkURL: string;
+      srcURL: string;
+      selectionText: string;
+      isEditable: boolean;
+    };
+
 export interface DeltaBridge {
   platform: string;
   versions: { electron: string; chrome: string; node: string };
@@ -36,6 +50,7 @@ export interface DeltaBridge {
   quit(): void;
   reboot(): void;
   toggleFullscreen(): void;
+  onBrowserEvent(cb: (e: BrowserEvent) => void): () => void;
   claude: {
     status(): Promise<ClaudeStatus>;
     setKey(key: string): Promise<ClaudeStatus>;

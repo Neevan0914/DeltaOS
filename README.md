@@ -22,19 +22,28 @@ Built with Electron, React, TypeScript and Tailwind CSS, and shipped as a single
   folders, rename, delete or personalize.
 - **Apps**
   - **Terminal:** `help`, `ls [-a] [-l]`, `cd`, `pwd`, `cat`, `mkdir [-p]`, `touch`, `rm [-r]`, `mv`,
-    `echo … > file`, `tree`, `clear`, `theme`, `open`, `edit`, `ask`, `neofetch`, `history`,
+    `echo … > file`, `tree`, `clear`, `theme`, `open`, `edit`, `write`, `browse`, `ask`, `neofetch`, `history`,
     `whoami`, `date`. It also has history (↑/↓), Tab completion and four color schemes.
   - **Files:** sidebar places, breadcrumbs, back/forward/up, grid and list views, search,
     drag-and-drop moving, and inline rename.
-  - **Code:** syntax highlighting (TS/JS, Python, CSS, JSON, Markdown, HTML, shell), line numbers,
-    auto-indent, Markdown live preview, quick open (Ctrl+O), save (Ctrl+S) and save as (Ctrl+Shift+S).
+  - **Tesseract:** a web browser with tabs, an address bar that also searches (Google, DuckDuckGo
+    or Bing), back/forward/reload, a new-tab page, bookmarks (Ctrl+D) and a bookmarks bar, zoom,
+    and a right-click menu. Pages open in a sandboxed `<webview>` with its own session.
+  - **Code:** a code editor with a language picker for **Python, C++, HTML, JavaScript, TypeScript
+    and C#**. It has syntax highlighting, starter templates, a live preview for HTML, and
+    **Run** (Ctrl+Enter) for JavaScript and TypeScript, with console output in a panel. It also has
+    line numbers, auto-indent, quick open (Ctrl+O), save (Ctrl+S) and save as (Ctrl+Shift+S).
+  - **Folio:** a distraction-free writing app. `.md`, `.txt` and other document files open here.
+    It has Write, Split and Read views, a formatting toolbar (headings, bold, italic, lists,
+    checklists, quotes, links), list continuation, serif/sans/mono fonts, word count and reading
+    time, and autosaves documents that have already been saved once.
   - **Settings:** dark/light theme, accent colors (presets or any custom color), 9 gradient
     wallpapers, transparency and animation toggles, a 24-hour clock, account name and password,
     and the Claude API key.
   - **Calculator** and **About**.
 - **Claude assistant.** Open it with the taskbar button or **Ctrl+Space**. Claude can answer
   questions and control the OS through tools: theme, accent, wallpaper and preferences, opening
-  and closing apps, and reading, writing and organising files.
+  and closing apps, opening web pages in Tesseract, and reading, writing and organising files.
 - **Persistence.** Settings and the virtual filesystem are saved automatically to
   `%APPDATA%\DeltaOS\deltaos-state.json`.
 
@@ -84,6 +93,6 @@ electron/        main process (window, persistence, Claude API calls) + preload 
 shared/ipc.ts    types shared across processes
 src/os/          store, virtual filesystem, window manager, assistant (agent loop + tools)
 src/components/  boot, login, desktop, window chrome, taskbar, start menu, assistant panel
-src/apps/        Terminal, Files, Code editor, Settings, Calculator, About
+src/apps/        Terminal, Files, Tesseract browser, Code editor (+ runner), Folio, Settings, Calculator, About
 scripts/         build helpers (electron bundling, icon generation, exe post-processing)
 ```

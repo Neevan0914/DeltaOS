@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import type { ClaudeDelta, DeltaBridge } from "../shared/ipc";
+import type { BrowserEvent, ClaudeDelta, DeltaBridge } from "../shared/ipc";
 
 const bridge: DeltaBridge = {
   platform: process.platform,
@@ -13,6 +13,11 @@ const bridge: DeltaBridge = {
   quit: () => ipcRenderer.send("app:quit"),
   reboot: () => ipcRenderer.send("app:reboot"),
   toggleFullscreen: () => ipcRenderer.send("app:toggle-fullscreen"),
+  onBrowserEvent: (cb) => {
+    const listener = (_e: IpcRendererEvent, ev: BrowserEvent) => cb(ev);
+    ipcRenderer.on("browser:event", listener);
+    return () => ipcRenderer.removeListener("browser:event", listener);
+  },
   claude: {
     status: () => ipcRenderer.invoke("claude:status"),
     setKey: (key) => ipcRenderer.invoke("claude:set-key", key),

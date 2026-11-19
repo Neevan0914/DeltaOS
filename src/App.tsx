@@ -56,7 +56,7 @@ export function App() {
     if (firstLogin) {
       setFirstLogin(false);
       if (getState().windows.length === 0) {
-        setTimeout(() => openApp("editor", { path: "/home/user/Desktop/Welcome.md" }), 450);
+        setTimeout(() => openApp("folio", { path: "/home/user/Desktop/Welcome.md" }), 450);
       }
     }
   }, [firstLogin]);

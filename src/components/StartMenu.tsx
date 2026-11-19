@@ -3,6 +3,7 @@ import { Lock, Power, RotateCcw, Search, ChevronRight } from "lucide-react";
 import { APPS } from "../apps/registry";
 import { setState, useOS, type AppId, type Phase } from "../os/store";
 import { openApp } from "../os/windows";
+import { openPath } from "../os/open";
 import { sendMessage, toggleAssistant } from "../os/assistant";
 import { HOME, prettyPath, type VDir, type VNode } from "../os/vfs";
 import { AppIcon } from "./AppIcon";
@@ -55,7 +56,7 @@ export function StartMenu({ onPower }: { onPower: (p: Phase | "lock") => void })
 
   const openFile = (f: { path: string; node: VNode }) => {
     if (f.node.type === "dir") openApp("files", { cwd: f.path });
-    else openApp("editor", { path: f.path });
+    else openPath(f.path);
   };
   const askClaude = () => {
     setState({ startOpen: false });
@@ -77,6 +78,7 @@ export function StartMenu({ onPower }: { onPower: (p: Phase | "lock") => void })
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key !== "Enter" || !q) return;
+              e.preventDefault();
               if (appHits[0]) openApp(appHits[0]);
               else if (fileHits[0]) openFile(fileHits[0]);
               else askClaude();

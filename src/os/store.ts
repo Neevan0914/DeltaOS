@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { createDefaultFs, type VDir } from "./vfs";
 
-export type AppId = "terminal" | "files" | "editor" | "settings" | "about" | "calculator";
+export type AppId = "terminal" | "files" | "editor" | "folio" | "browser" | "settings" | "about" | "calculator";
 export type Phase = "boot" | "login" | "desktop" | "shutdown" | "restart";
 
 export interface Settings {
@@ -14,6 +14,21 @@ export interface Settings {
   password: string;
   clock24: boolean;
   terminalTheme: TerminalTheme;
+  browser: BrowserSettings;
+  folio: FolioSettings;
+}
+export interface Bookmark {
+  title: string;
+  url: string;
+}
+export interface BrowserSettings {
+  search: "google" | "duckduckgo" | "bing";
+  bookmarks: Bookmark[];
+}
+export interface FolioSettings {
+  font: "serif" | "sans" | "mono";
+  size: number;
+  width: "narrow" | "wide";
 }
 export type TerminalTheme = "delta" | "matrix" | "amber" | "ice";
 
@@ -67,6 +82,18 @@ export const DEFAULT_SETTINGS: Settings = {
   password: "",
   clock24: false,
   terminalTheme: "delta",
+  browser: {
+    search: "google",
+    bookmarks: [
+      { title: "Wikipedia", url: "https://www.wikipedia.org/" },
+      { title: "GitHub", url: "https://github.com/" },
+      { title: "Anthropic", url: "https://www.anthropic.com/" },
+      { title: "YouTube", url: "https://www.youtube.com/" },
+      { title: "MDN Web Docs", url: "https://developer.mozilla.org/" },
+      { title: "Hacker News", url: "https://news.ycombinator.com/" },
+    ],
+  },
+  folio: { font: "serif", size: 18, width: "narrow" },
 };
 
 let state: OSState = {
@@ -132,7 +159,12 @@ export async function loadPersisted() {
     if (raw) {
       const data = JSON.parse(raw);
       setState({
-        settings: { ...DEFAULT_SETTINGS, ...(data.settings ?? {}) },
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...(data.settings ?? {}),
+          browser: { ...DEFAULT_SETTINGS.browser, ...(data.settings?.browser ?? {}) },
+          folio: { ...DEFAULT_SETTINGS.folio, ...(data.settings?.folio ?? {}) },
+        },
         fs: data.fs?.type === "dir" ? data.fs : createDefaultFs(),
       });
     }
