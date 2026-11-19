@@ -3,9 +3,8 @@
 A full-screen, glassmorphic simulated desktop operating system with a built-in **Claude** AI assistant.
 Built with Electron, React, TypeScript and Tailwind CSS, and shipped as a single portable Windows executable.
 
-**Run it:** double-click **`DeltaOS.exe`**. No installation is needed. The exe is about 103 MB,
-over GitHub's 100 MB file limit, so it isn't committed here. Build it with `npm run dist:win`,
-which writes it to the project root, or use a copy you were sent.
+**Run it:** download **`DeltaOS.exe`** from this folder and double-click it. No installation is needed.
+On GitHub, open `DeltaOS.exe` and click **Download raw file** (the ↓ icon). `npm run dist:win` rebuilds it.
 
 > The exe is unsigned, so Windows SmartScreen may show "Windows protected your PC" the first time.
 > Click **More info → Run anyway**. The portable exe unpacks itself to a temp folder on each launch,
