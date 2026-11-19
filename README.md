@@ -3,7 +3,9 @@
 A full-screen, glassmorphic simulated desktop operating system with a built-in **Claude** AI assistant.
 Built with Electron, React, TypeScript and Tailwind CSS, and shipped as a single portable Windows executable.
 
-**Run it:** double-click **`DeltaOS.exe`** in this folder. No installation is needed.
+**Run it:** double-click **`DeltaOS.exe`**. No installation is needed. The exe is about 103 MB,
+over GitHub's 100 MB file limit, so it isn't committed here. Build it with `npm run dist:win`,
+which writes it to the project root, or use a copy you were sent.
 
 > The exe is unsigned, so Windows SmartScreen may show "Windows protected your PC" the first time.
 > Click **More info → Run anyway**. The portable exe unpacks itself to a temp folder on each launch,
@@ -29,6 +31,8 @@ Built with Electron, React, TypeScript and Tailwind CSS, and shipped as a single
   - **Tesseract:** a web browser with tabs, an address bar that also searches (Google, DuckDuckGo
     or Bing), back/forward/reload, a new-tab page, bookmarks (Ctrl+D) and a bookmarks bar, zoom,
     and a right-click menu. Pages open in a sandboxed `<webview>` with its own session.
+    HTML files from DeltaOS open rendered here: double-click one in Files, type its path
+    (e.g. `~/Code/index.html`) in the address bar, or press the globe button in Code.
   - **Code:** a code editor with a language picker for **Python, C++, HTML, JavaScript, TypeScript
     and C#**. It has syntax highlighting, starter templates, a live preview for HTML, and
     **Run** (Ctrl+Enter) for JavaScript and TypeScript, with console output in a panel. It also has
@@ -83,8 +87,8 @@ Set `DELTAOS_WINDOWED=1` to launch in a window instead of full screen.
 
 Cross-building the Windows exe from Linux or macOS needs no Wine. The `afterPack` hook
 (`scripts/after-pack.cjs`) stamps the icon and version info with the pure-JS `resedit` library.
-It also drops `dxcompiler.dll`, Chromium's WebGPU shader compiler, which DeltaOS doesn't use;
-this keeps the single-file exe under 100 MB.
+If something misbehaves, **Settings → System → Diagnostics log** opens
+`%APPDATA%\DeltaOS\logs\deltaos.log`, which records page loads, page crashes and graphics info.
 
 ### Layout
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowUp, ChevronRight, Code2, Download, FileCode2, FilePlus, FolderPlus, HardDrive, Home, Image, LayoutGrid,
-  List, Monitor, Feather, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
+  List, Monitor, Feather, Globe, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
 } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { notify, setFs, useOS } from "../os/store";
@@ -141,6 +141,7 @@ export function FileExplorer({ win }: AppProps) {
         ? [
             { label: "Open with Code", icon: FileCode2, onClick: () => openApp("editor", { path: pathOf(name) }) },
             { label: "Open with Folio", icon: Feather, onClick: () => openApp("folio", { path: pathOf(name) }) },
+            { label: "Open in Tesseract", icon: Globe, onClick: () => openApp("browser", { file: pathOf(name) }) },
           ]
         : [
             { label: "Open in new window", icon: ExternalLink, onClick: () => openApp("files", { cwd: pathOf(name) }) },

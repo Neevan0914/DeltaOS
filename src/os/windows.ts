@@ -12,10 +12,10 @@ export function openApp(app: AppId, props: Record<string, unknown> = {}) {
   const def = APPS[app];
   const s = getState();
   // A URL opens as a new tab in the most recent browser window, if there is one.
-  if (app === "browser" && props.url) {
+  if (app === "browser" && (props.url || props.file || props.html)) {
     const existing = s.windows.filter((w) => w.app === "browser" && !w.closing).sort((a, b) => b.z - a.z)[0];
     if (existing) {
-      updateWindow(existing.id, { props: { ...existing.props, url: props.url, nonce: Date.now() } });
+      updateWindow(existing.id, { props: { url: props.url, file: props.file, html: props.html, label: props.label, nonce: Date.now() } });
       focusWindow(existing.id);
       return existing.id;
     }

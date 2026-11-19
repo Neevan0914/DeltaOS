@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Menu, session, shell, type WebContents } f
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as claude from "./claude";
+import { log, logDir } from "./log";
 import type { ClaudeTurnRequest } from "../shared/ipc";
 
 app.setName("DeltaOS");
@@ -81,6 +82,8 @@ ipcMain.on("app:reboot", () => {
   app.exit(0);
 });
 ipcMain.on("app:toggle-fullscreen", () => win?.setFullScreen(!win.isFullScreen()));
+ipcMain.on("app:log", (_e, msg: string) => log("ui", String(msg).slice(0, 2000)));
+ipcMain.handle("app:open-logs", () => shell.openPath(logDir()));
 
 ipcMain.handle("claude:status", () => claude.status());
 ipcMain.handle("claude:set-key", (_e, key: string) => claude.setKey(String(key ?? "")));
@@ -94,6 +97,13 @@ const SHORTCUTS = new Set(["ctrl+t", "ctrl+w", "ctrl+l", "ctrl+r", "f5", "alt+ar
 
 function wireGuest(guest: WebContents) {
   const host = () => win?.webContents;
+  const short = (u: string) => (u.startsWith("data:") ? "data:(inline document)" : u.slice(0, 200));
+  guest.on("did-fail-load", (_e, code, desc, url, isMainFrame) => {
+    if (isMainFrame && code !== -3) log("webview load failed", { code, desc, url: short(url) });
+  });
+  guest.on("render-process-gone", (_e, d) => log("webview renderer gone", { reason: d.reason, exitCode: d.exitCode, url: short(guest.getURL()) }));
+  guest.on("unresponsive", () => log("webview unresponsive", short(guest.getURL())));
+  guest.on("did-finish-load", () => log("webview loaded", short(guest.getURL())));
   guest.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) host()?.send("browser:event", { type: "open-tab", guestId: guest.id, url });
     return { action: "deny" };
@@ -122,6 +132,9 @@ function wireGuest(guest: WebContents) {
   });
 }
 
+app.on("child-process-gone", (_e, d) => log("child process gone", { type: d.type, reason: d.reason, exitCode: d.exitCode, name: d.name }));
+app.on("render-process-gone", (_e, _wc, d) => log("renderer gone", { reason: d.reason, exitCode: d.exitCode }));
+
 app.on("web-contents-created", (_e, contents) => {
   if (contents.getType() === "webview") wireGuest(contents);
 });
@@ -145,9 +158,19 @@ if (!single) {
     }
   });
   Menu.setApplicationMenu(null);
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
+    log("---- DeltaOS start", { version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, platform: `${process.platform} ${process.getSystemVersion()} ${process.arch}` });
     setupBrowserSession();
     createWindow();
+    setTimeout(async () => {
+      log("gpu features", app.getGPUFeatureStatus());
+      try {
+        const info = (await app.getGPUInfo("basic")) as { gpuDevice?: { vendorId: number; deviceId: number; active?: boolean; driverVersion?: string }[] };
+        log("gpu devices", info.gpuDevice ?? []);
+      } catch (e) {
+        log("gpu info unavailable", String(e));
+      }
+    }, 4000);
   });
   app.on("window-all-closed", () => app.quit());
 }

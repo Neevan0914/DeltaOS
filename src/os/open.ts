@@ -10,8 +10,11 @@ export function isDocument(path: string) {
   return FOLIO_EXTS.has(extname(name)) || !name.includes(".");
 }
 
-/** Open a file in the right app for its type. */
+export const isWebPage = (path: string) => ["html", "htm"].includes(extname(basename(path)));
+
+/** Open a file in the right app for its type: documents in Folio, web pages in Tesseract, code in Code. */
 export function openPath(path: string) {
+  if (isWebPage(path)) return openApp("browser", { file: path });
   return isDocument(path) ? openApp("folio", { path }) : openApp("editor", { path });
 }
 

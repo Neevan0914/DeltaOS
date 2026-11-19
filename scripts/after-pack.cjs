@@ -47,11 +47,4 @@ exports.default = async function afterPack(context) {
   fs.writeFileSync(exePath, Buffer.from(exe.generate()));
   console.log(`  • afterPack: stamped icon + version ${version} into ${exeName}`);
 
-  // dxcompiler.dll is only loaded by Chromium's WebGPU (D3D12) backend, which DeltaOS never
-  // uses. Dropping it keeps the single-file portable exe comfortably under 100 MB.
-  const dxc = path.join(context.appOutDir, "dxcompiler.dll");
-  if (fs.existsSync(dxc)) {
-    fs.unlinkSync(dxc);
-    console.log("  • afterPack: removed unused dxcompiler.dll (WebGPU shader compiler)");
-  }
 };

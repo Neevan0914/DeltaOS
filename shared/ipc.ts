@@ -50,6 +50,8 @@ export interface DeltaBridge {
   quit(): void;
   reboot(): void;
   toggleFullscreen(): void;
+  log(message: string): void;
+  openLogs(): Promise<string>;
   onBrowserEvent(cb: (e: BrowserEvent) => void): () => void;
   claude: {
     status(): Promise<ClaudeStatus>;

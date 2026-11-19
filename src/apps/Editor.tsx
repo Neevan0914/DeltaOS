@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Save, FilePlus2, FolderOpen, WrapText, Eye, Check, ChevronDown, Play, Square, Trash2, X, Feather, Code2 } from "lucide-react";
+import { Save, FilePlus2, FolderOpen, WrapText, Eye, Check, ChevronDown, Play, Square, Trash2, X, Feather, Code2, Globe } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { getState, notify, setFs, useOS } from "../os/store";
 import { openApp, updateWindow } from "../os/windows";
@@ -246,6 +246,14 @@ export function Editor({ win }: AppProps) {
               <Play size={12} fill="currentColor" /> Run
             </Button>
           ))}
+        {lang === "html" && (
+          <IconButton
+            title="Open in Tesseract"
+            onClick={() => (path && !dirty ? openApp("browser", { file: path }) : openApp("browser", { html: text, label: `${name} (unsaved preview)` }))}
+          >
+            <Globe size={16} />
+          </IconButton>
+        )}
         <IconButton title="Word wrap" active={wrap} onClick={() => setWrap((w) => !w)}><WrapText size={16} /></IconButton>
         {canPreview && <IconButton title="Preview" active={preview} onClick={() => setPreview((p) => !p)}><Eye size={16} /></IconButton>}
       </div>
@@ -269,7 +277,7 @@ export function Editor({ win }: AppProps) {
         {/* Code */}
         <div className="relative flex-1 min-w-0 overflow-auto" style={{ background: "color-mix(in oklab, var(--os-input) 70%, transparent)" }}>
           <div className={`flex min-h-full ${wrap ? "" : "min-w-full w-max"}`}>
-            <div className="sticky left-0 z-10 shrink-0 w-12 overflow-hidden border-r border-line" style={{ background: "var(--os-window)" }}>
+            <div className="sticky left-0 z-10 shrink-0 w-12 overflow-hidden border-r border-line" style={{ background: "var(--os-window-solid)" }}>
               <div className="code-layer py-3 pr-3 text-right text-faint">
                 {Array.from({ length: lines }, (_, i) => (
                   <div key={i} className={i + 1 === cursor.line ? "text-fg" : ""}>{i + 1}</div>

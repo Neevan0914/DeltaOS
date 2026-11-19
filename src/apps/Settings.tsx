@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Palette, Image as ImageIcon, User, Monitor, Info, Moon, Sun, Check, KeyRound, ShieldCheck, Trash2, ExternalLink, SquareTerminal } from "lucide-react";
+import { FolderOpen, Palette, Image as ImageIcon, User, Monitor, Info, Moon, Sun, Check, KeyRound, ShieldCheck, Trash2, ExternalLink, SquareTerminal } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { updateSettings, useOS, notify, setState } from "../os/store";
 import { ACCENTS } from "../os/theme";
@@ -227,6 +227,15 @@ function SystemSection() {
           <SquareTerminal size={18} className="text-muted" />
         </Row>
       </Card>
+      {window.deltaos && (
+        <Card>
+          <Row title="Diagnostics log" sub="If something doesn't work, this log records page loads, crashes and graphics info. Send it along with your report.">
+            <Button onClick={() => void window.deltaos?.openLogs()}>
+              <FolderOpen size={14} /> Open folder
+            </Button>
+          </Row>
+        </Card>
+      )}
       <Card>
         <Row title="Reset file system" sub="Restore the default files and folders. Your own files will be deleted.">
           <Button

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, ArrowRight, RotateCw, X, Plus, Lock, Globe, Search, Star, Home, MoreVertical, ZoomIn, ZoomOut, ExternalLink,
-  Copy, Clipboard, Scissors, TextSelect, Link2, Image as ImageIcon, AlertTriangle, Check,
+  Copy, Clipboard, Scissors, FileText, TextSelect, Link2, Image as ImageIcon, AlertTriangle, Check,
 } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { updateSettings, useOS, getState, type Bookmark } from "../os/store";
@@ -9,7 +9,8 @@ import { closeWindow, focusWindow, updateWindow } from "../os/windows";
 import { showContextMenu, type MenuItem } from "../os/contextMenu";
 import { toUrl } from "../os/open";
 import { TesseractIcon } from "../components/TesseractIcon";
-import { ALLOW_POPUPS, hasWebview, type WebviewEl } from "../lib/webview";
+import { ALLOW_POPUPS, hasWebview, htmlToUrl, repaint, type WebviewEl } from "../lib/webview";
+import { basename, getNode, HOME, prettyPath, resolvePath } from "../os/vfs";
 
 interface Tab {
   id: string;
@@ -19,7 +20,10 @@ interface Tab {
   loading: boolean;
   canBack: boolean;
   canFwd: boolean;
-  error: { code: number; desc: string; url: string } | null;
+  error: { code: number; desc: string; url: string; crashed?: boolean } | null;
+  /** For pages rendered from a DeltaOS file (or unsaved HTML): what the address bar shows. */
+  label?: string;
+  filePath?: string;
 }
 
 let tabSeq = 0;
@@ -44,10 +48,31 @@ function hostOf(url: string) {
 
 const ENGINES = { google: "Google", duckduckgo: "DuckDuckGo", bing: "Bing" } as const;
 
+/** Resolve a DeltaOS path (~/Code/index.html) to a renderable page, or null if it isn't one. */
+function filePage(input: string): { url: string; filePath: string; label: string } | null {
+  const q = input.trim();
+  if (!/^(~|\/)/.test(q)) return null;
+  const path = resolvePath(HOME, q);
+  const node = getNode(getState().fs, path);
+  if (node?.type !== "file") return null;
+  const isHtml = /\.html?$/i.test(path);
+  const html = isHtml ? node.content : `<!doctype html><meta charset="utf-8"><title>${basename(path)}</title><pre style="font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap;margin:16px">${node.content.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`;
+  return { url: htmlToUrl(html), filePath: path, label: prettyPath(path) };
+}
+
+function initialTab(props: Record<string, unknown>): Tab {
+  if (props.file) {
+    const page = filePage(String(props.file));
+    if (page) return { ...newTab(page.url), title: basename(page.filePath), filePath: page.filePath, label: page.label };
+  }
+  if (props.html) return { ...newTab(htmlToUrl(String(props.html))), title: String(props.label ?? "Preview"), label: String(props.label ?? "Preview") };
+  return newTab((props.url as string) || "");
+}
+
 export function Browser({ win }: AppProps) {
   const focused = useOS((s) => s.focusedId === win.id);
   const browser = useOS((s) => s.settings.browser);
-  const [tabs, setTabs] = useState<Tab[]>(() => [newTab((win.props.url as string) || "")]);
+  const [tabs, setTabs] = useState<Tab[]>(() => [initialTab(win.props)]);
   const [activeId, setActiveId] = useState(() => tabs[0].id);
   const [addr, setAddr] = useState<string | null>(null); // non-null while editing
   const [zoom, setZoom] = useState<Record<string, number>>({});
@@ -65,22 +90,30 @@ export function Browser({ win }: AppProps) {
   // URL pushed from elsewhere (e.g. Claude's open_url, `open https://…` in Terminal)
   const firstNonce = useRef(win.props.nonce);
   useEffect(() => {
-    const url = win.props.url as string | undefined;
-    if (url && win.props.nonce && win.props.nonce !== firstNonce.current) openInNewTab(url);
+    if (!win.props.nonce || win.props.nonce === firstNonce.current) return;
+    if (win.props.file || win.props.html) {
+      const t = initialTab(win.props);
+      setTabs((ts) => [...ts, t]);
+      setActiveId(t.id);
+    } else if (win.props.url) openInNewTab(String(win.props.url));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [win.props.nonce]);
 
   const navigate = (input: string, tabId = active.id) => {
-    const url = toUrl(input, browser.search);
+    const page = filePage(input);
+    const url = page?.url ?? toUrl(input, browser.search);
     if (!url) return;
     setAddr(null);
     const tab = tabs.find((t) => t.id === tabId);
     const view = views.current.get(tabId);
-    if (tab?.url && view) {
-      patchTab(tabId, { error: null });
+    const fileInfo = { filePath: page?.filePath, label: page?.label };
+    if (tab?.url && view && !tab.error?.crashed) {
+      patchTab(tabId, { error: null, ...fileInfo });
       void view.loadURL(url).catch(() => {});
     } else {
-      patchTab(tabId, { url, title: hostOf(url), loading: true, error: null });
+      // New tab page, or a crashed page: (re)create the webview.
+      views.current.delete(tabId);
+      patchTab(tabId, { url, title: page ? basename(page.filePath) : hostOf(url), loading: true, error: null, ...fileInfo });
     }
     setTimeout(() => views.current.get(tabId)?.focus(), 50);
   };
@@ -116,6 +149,11 @@ export function Browser({ win }: AppProps) {
   };
 
   const view = () => views.current.get(active.id);
+  const reload = () => {
+    if (active.filePath) return navigate(active.filePath); // re-read the file so edits show up
+    if (active.error?.crashed) return navigate(active.error.url);
+    view()?.reload();
+  };
   const isBookmarked = !!active.url && browser.bookmarks.some((b) => b.url === active.url);
   const toggleBookmark = () => {
     if (!active.url) return;
@@ -135,7 +173,7 @@ export function Browser({ win }: AppProps) {
       case "ctrl+t": return openInNewTab();
       case "ctrl+w": return closeTab(active.id);
       case "ctrl+l": addrRef.current?.focus(); addrRef.current?.select(); return;
-      case "ctrl+r": case "f5": return view()?.reload();
+      case "ctrl+r": case "f5": return reload();
       case "alt+arrowleft": return view()?.goBack();
       case "alt+arrowright": return view()?.goForward();
       case "ctrl+d": return toggleBookmark();
@@ -242,7 +280,7 @@ export function Browser({ win }: AppProps) {
     ]);
   };
 
-  const shownAddr = addr ?? (active.url ? active.url : "");
+  const shownAddr = addr ?? (active.url.startsWith("data:") ? active.label ?? "Inline page" : active.url);
   const secure = active.url.startsWith("https://");
 
   return (
@@ -283,7 +321,7 @@ export function Browser({ win }: AppProps) {
         {active.loading ? (
           <NavBtn label="Stop" onClick={() => view()?.stop()}><X size={16} /></NavBtn>
         ) : (
-          <NavBtn label="Reload" disabled={!active.url} onClick={() => view()?.reload()}><RotateCw size={15} /></NavBtn>
+          <NavBtn label="Reload" disabled={!active.url} onClick={reload}><RotateCw size={15} /></NavBtn>
         )}
         <NavBtn label="Home" onClick={goHome}><Home size={15} /></NavBtn>
         <form
@@ -295,7 +333,9 @@ export function Browser({ win }: AppProps) {
           }}
         >
           <div className="flex items-center h-8 rounded-full bg-input border border-line focus-within:border-accent focus-within:shadow-[0_0_0_3px_color-mix(in_oklab,var(--os-accent)_25%,transparent)] transition-all px-3 gap-2">
-            {!active.url || addr !== null ? (
+            {active.filePath && addr === null ? (
+              <FileText size={14} className="text-muted shrink-0" />
+            ) : !active.url || addr !== null ? (
               <Search size={14} className="text-muted shrink-0" />
             ) : secure ? (
               <Lock size={13} className="text-emerald-400 shrink-0" />
@@ -363,7 +403,8 @@ export function Browser({ win }: AppProps) {
         )}
         {tabs.map((t) =>
           t.url ? (
-            <Guest
+            // A crashed page's webview is dropped; "Try again" mounts a fresh one.
+            !t.error?.crashed && <Guest
               key={t.id}
               tab={t}
               active={t.id === active.id}
@@ -380,9 +421,11 @@ export function Browser({ win }: AppProps) {
               <div className="w-14 h-14 mx-auto rounded-2xl grid place-items-center bg-amber-400/15 text-amber-400 mb-4">
                 <AlertTriangle size={28} />
               </div>
-              <div className="text-[18px] font-semibold">This page couldn't be loaded</div>
-              <div className="text-[13px] text-muted mt-2 break-all">{hostOf(active.error.url)} · {active.error.desc}</div>
-              <button onClick={() => { patchTab(active.id, { error: null }); view()?.reload(); }} className="mt-5 h-8 px-4 rounded-lg bg-accent text-accent-fg text-[13px] font-medium">
+              <div className="text-[18px] font-semibold">{active.error.crashed ? "This page crashed" : "This page couldn't be loaded"}</div>
+              <div className="text-[13px] text-muted mt-2 break-all">
+                {active.label ?? hostOf(active.error.url)} · {active.error.desc}
+              </div>
+              <button onClick={() => { const crashed = active.error?.crashed; patchTab(active.id, { error: null }); if (crashed || active.filePath) reload(); else view()?.reload(); }} className="mt-5 h-8 px-4 rounded-lg bg-accent text-accent-fg text-[13px] font-medium">
                 Try again
               </button>
             </div>
@@ -410,7 +453,13 @@ function Guest({ tab, active, register, patch }: { tab: Tab; active: boolean; re
     register(el);
     const nav = () => {
       try {
-        patchRef.current({ url: el.getURL(), canBack: el.canGoBack(), canFwd: el.canGoForward() });
+        const url = el.getURL();
+        patchRef.current({
+          url,
+          canBack: el.canGoBack(),
+          canFwd: el.canGoForward(),
+          ...(url.startsWith("data:") ? {} : { filePath: undefined, label: undefined }),
+        });
       } catch {
         /* guest not ready */
       }
@@ -421,7 +470,17 @@ function Guest({ tab, active, register, patch }: { tab: Tab; active: boolean; re
         patchRef.current({ loading: false });
         nav();
       },
-      "did-navigate": nav,
+      "did-navigate": () => {
+        nav();
+        repaint(el);
+      },
+      "dom-ready": () => repaint(el),
+      "did-finish-load": () => repaint(el),
+      "render-process-gone": (e) => {
+        const reason = String((e as unknown as { details?: { reason?: string } }).details?.reason ?? e.reason ?? "unknown");
+        window.deltaos?.log(`tesseract tab crashed: ${reason}`);
+        patchRef.current({ loading: false, error: { code: -1000, desc: `The page's process stopped (${reason}).`, url: el.getURL?.() || "", crashed: true } });
+      },
       "did-navigate-in-page": (e) => e.isMainFrame !== false && nav(),
       "page-title-updated": (e) => patchRef.current({ title: String(e.title) }),
       "page-favicon-updated": (e) => patchRef.current({ favicon: (e.favicons as string[])?.[0] ?? null }),
@@ -437,6 +496,10 @@ function Guest({ tab, active, register, patch }: { tab: Tab; active: boolean; re
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (active) repaint(ref.current);
+  }, [active]);
 
   if (!hasWebview()) return null;
   return (

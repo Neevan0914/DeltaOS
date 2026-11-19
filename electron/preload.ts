@@ -13,6 +13,8 @@ const bridge: DeltaBridge = {
   quit: () => ipcRenderer.send("app:quit"),
   reboot: () => ipcRenderer.send("app:reboot"),
   toggleFullscreen: () => ipcRenderer.send("app:toggle-fullscreen"),
+  log: (msg) => ipcRenderer.send("app:log", msg),
+  openLogs: () => ipcRenderer.invoke("app:open-logs"),
   onBrowserEvent: (cb) => {
     const listener = (_e: IpcRendererEvent, ev: BrowserEvent) => cb(ev);
     ipcRenderer.on("browser:event", listener);

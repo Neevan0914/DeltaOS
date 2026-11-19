@@ -3,3 +3,6 @@ dist/
 release/
 *.log
 .DS_Store
+
+# Built by `npm run dist:win`; over GitHub's 100 MB file limit, so it is distributed separately
+DeltaOS.exe
