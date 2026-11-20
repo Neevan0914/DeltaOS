@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "
 import { join } from "node:path";
 import * as claude from "./claude";
 import { log, logDir } from "./log";
+import { GAMES_PARTITION, isGamesUrl } from "../shared/games";
 import type { ClaudeTurnRequest } from "../shared/ipc";
 
 app.setName("DeltaOS");
@@ -95,6 +96,32 @@ ipcMain.on("claude:abort", (_e, id: string) => claude.abort(id));
 
 const SHORTCUTS = new Set(["ctrl+t", "ctrl+w", "ctrl+l", "ctrl+r", "f5", "alt+arrowleft", "alt+arrowright", "ctrl+space", "ctrl+alt+t", "ctrl+alt+e", "ctrl+tab", "ctrl+shift+tab", "ctrl+d", "escape"]);
 
+/** Games guests may only ever show the Anyware Studios itch.io page; enforced here, outside the page. */
+function lockGamesGuest(guest: WebContents) {
+  const host = () => win?.webContents;
+  const blocked = (url: string) => {
+    log("games: blocked navigation", url.slice(0, 200));
+    host()?.send("browser:event", { type: "games-blocked", guestId: guest.id, url });
+  };
+  guest.setWindowOpenHandler(({ url }) => {
+    if (isGamesUrl(url)) void guest.loadURL(url); // allowed pop-ups open in the same view
+    else blocked(url);
+    return { action: "deny" };
+  });
+  guest.on("will-navigate", (e) => {
+    if (!isGamesUrl(e.url)) {
+      e.preventDefault();
+      blocked(e.url);
+    }
+  });
+  guest.on("will-redirect", (e) => {
+    if (e.isMainFrame && !isGamesUrl(e.url)) {
+      e.preventDefault();
+      blocked(e.url);
+    }
+  });
+}
+
 function wireGuest(guest: WebContents) {
   const host = () => win?.webContents;
   const short = (u: string) => (u.startsWith("data:") ? "data:(inline document)" : u.slice(0, 200));
@@ -104,10 +131,12 @@ function wireGuest(guest: WebContents) {
   guest.on("render-process-gone", (_e, d) => log("webview renderer gone", { reason: d.reason, exitCode: d.exitCode, url: short(guest.getURL()) }));
   guest.on("unresponsive", () => log("webview unresponsive", short(guest.getURL())));
   guest.on("did-finish-load", () => log("webview loaded", short(guest.getURL())));
-  guest.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/i.test(url)) host()?.send("browser:event", { type: "open-tab", guestId: guest.id, url });
-    return { action: "deny" };
-  });
+  if (guest.session === session.fromPartition(GAMES_PARTITION)) lockGamesGuest(guest);
+  else
+    guest.setWindowOpenHandler(({ url }) => {
+      if (/^https?:/i.test(url)) host()?.send("browser:event", { type: "open-tab", guestId: guest.id, url });
+      return { action: "deny" };
+    });
   guest.on("before-input-event", (e, input) => {
     if (input.type !== "keyDown") return;
     const combo = [input.control || input.meta ? "ctrl" : "", input.alt ? "alt" : "", input.shift ? "shift" : "", input.key === " " ? "space" : input.key.toLowerCase()]
@@ -140,11 +169,13 @@ app.on("web-contents-created", (_e, contents) => {
 });
 
 function setupBrowserSession() {
-  const ses = session.fromPartition("persist:tesseract");
-  // Present as plain Chrome so sites don't serve degraded pages to "Electron".
-  ses.setUserAgent(ses.getUserAgent().replace(/\s(Electron|deltaos|DeltaOS)\/\S+/g, ""));
-  const allowed = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock"]);
-  ses.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
+  for (const partition of ["persist:tesseract", GAMES_PARTITION]) {
+    const ses = session.fromPartition(partition);
+    // Present as plain Chrome so sites don't serve degraded pages to "Electron".
+    ses.setUserAgent(ses.getUserAgent().replace(/\s(Electron|deltaos|DeltaOS)\/\S+/g, ""));
+    const allowed = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock"]);
+    ses.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
+  }
 }
 
 const single = app.requestSingleInstanceLock();

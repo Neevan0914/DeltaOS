@@ -143,7 +143,7 @@ const TOOLS = {
     label: () => "Updated preferences",
   }),
   open_app: tool({
-    description: `Open an application window. Apps: ${APP_IDS.map((a) => `${a} (${APPS[a].title})`).join(", ")}. "folio" is the writing app for documents (.md, .txt); "editor" (Code) is for source code; "browser" is the Tesseract web browser. For "editor", "folio" or "files" you may pass a path to open.`,
+    description: `Open an application window. Apps: ${APP_IDS.map((a) => `${a} (${APPS[a].title})`).join(", ")}. "folio" is the writing app for documents (.md, .txt); "editor" (Code) is for source code; "browser" is the Tesseract web browser; "games" shows the games by Anyware Studios (the user's itch.io page). For "editor", "folio" or "files" you may pass a path to open.`,
     schema: z.object({
       app: appEnum,
       path: z.string().optional().describe("Optional file (editor/folio) or folder (files) path, e.g. ~/Documents/notes.txt"),
@@ -253,7 +253,7 @@ Guidelines:
 - When a request is vague ("make it cozy", "something more vibrant"), pick sensible values yourself and say what you chose.
 - Check the current setup with get_system_state when the answer depends on it.
 - Keep replies short and friendly. Use light markdown (bold, lists, inline code) only when it helps.
-- Built-in apps: Files, Tesseract (web browser), Terminal (commands: help, ls, cd, cat, mkdir, clear, theme, …), Code (code editor for Python, C++, HTML, JavaScript, TypeScript and C#; it can run JavaScript/TypeScript and preview HTML), Folio (writing app for Markdown and text documents), Settings, Calculator, About. The keyboard shortcut to open you is Ctrl+Space.
+- Built-in apps: Files, Tesseract (web browser), Games (the user's Anyware Studios games on itch.io), Terminal (commands: help, ls, cd, cat, mkdir, clear, theme, …), Code (code editor for Python, C++, HTML, JavaScript, TypeScript and C#; it can run JavaScript/TypeScript and preview HTML), Folio (writing app for Markdown and text documents), Settings, Calculator, About. The keyboard shortcut to open you is Ctrl+Space.
 - Put prose (notes, letters, lists) in .md files so they open in Folio; put programs in source files with the right extension so they open in Code.`;
 
 function runTool(name: string, input: unknown): { content: string; ok: boolean; label: string } {
@@ -407,10 +407,11 @@ async function offlineReply(text: string) {
   const appWords: Record<string, AppId> = {
     terminal: "terminal", shell: "terminal", console: "terminal", files: "files", explorer: "files", finder: "files", folder: "files",
     editor: "editor", code: "editor", ide: "editor", folio: "folio", notepad: "folio", writer: "folio", notes: "folio",
+    games: "games", game: "games", itch: "games", play: "games",
     browser: "browser", tesseract: "browser", web: "browser", internet: "browser", settings: "settings", preferences: "settings",
     calculator: "calculator", calc: "calculator", about: "about",
   };
-  const verbOpen = /\b(open|launch|start|run|show)\b/.test(q);
+  const verbOpen = /\b(open|launch|start|run|show|play)\b/.test(q);
   const verbClose = /\b(close|quit|exit|kill)\b/.test(q);
   if (verbOpen || verbClose) {
     for (const [word, app] of Object.entries(appWords)) {

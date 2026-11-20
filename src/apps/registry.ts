@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Calculator, FolderOpen, Info, Settings2, SquareTerminal, FileCode2, Feather } from "lucide-react";
+import { Calculator, FolderOpen, Info, Settings2, SquareTerminal, FileCode2, Feather, Gamepad2 } from "lucide-react";
 import type { AppId } from "../os/store";
 import { TesseractIcon } from "../components/TesseractIcon";
 
@@ -46,6 +46,16 @@ export const APPS: Record<AppId, AppMeta> = {
     size: { w: 1120, h: 720 },
     minSize: { w: 520, h: 360 },
     singleton: false,
+  },
+  games: {
+    id: "games",
+    title: "Games",
+    description: "Games by Anyware Studios",
+    icon: Gamepad2,
+    gradient: "linear-gradient(135deg, #a3e635 0%, #16a34a 100%)",
+    size: { w: 1100, h: 720 },
+    minSize: { w: 560, h: 380 },
+    singleton: true,
   },
   folio: {
     id: "folio",
@@ -99,4 +109,4 @@ export const APPS: Record<AppId, AppMeta> = {
   },
 };
 
-export const PINNED: AppId[] = ["files", "browser", "terminal", "editor", "folio", "settings", "calculator"];
+export const PINNED: AppId[] = ["files", "browser", "games", "terminal", "editor", "folio", "settings", "calculator"];

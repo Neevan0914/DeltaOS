@@ -1,7 +1,7 @@
 {
   "name": "deltaos",
   "productName": "DeltaOS",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "DeltaOS - a glassmorphic simulated desktop operating system with a built-in Claude assistant",
   "author": "DeltaOS",
   "license": "MIT",

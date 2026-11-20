@@ -32,6 +32,10 @@ On GitHub, open `DeltaOS.exe` and click **Download raw file** (the ↓ icon). `n
     and a right-click menu. Pages open in a sandboxed `<webview>` with its own session.
     HTML files from DeltaOS open rendered here: double-click one in Files, type its path
     (e.g. `~/Code/index.html`) in the address bar, or press the globe button in Code.
+  - **Games:** the Anyware Studios itch.io page (anyware-studios.itch.io) as its own app, with no
+    browser controls apart from a small back/home button once you open a game. It stays locked to
+    that page and its game pages: links to the rest of itch.io or other sites are refused (enforced
+    in the main process), and it never opens Tesseract. Games can go full screen.
   - **Code:** a code editor with a language picker for **Python, C++, HTML, JavaScript, TypeScript
     and C#**. It has syntax highlighting, starter templates, a live preview for HTML, and
     **Run** (Ctrl+Enter) for JavaScript and TypeScript, with console output in a panel. It also has

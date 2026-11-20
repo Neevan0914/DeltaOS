@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { createDefaultFs, type VDir } from "./vfs";
 
-export type AppId = "terminal" | "files" | "editor" | "folio" | "browser" | "settings" | "about" | "calculator";
+export type AppId = "terminal" | "files" | "editor" | "folio" | "browser" | "games" | "settings" | "about" | "calculator";
 export type Phase = "boot" | "login" | "desktop" | "shutdown" | "restart";
 
 export interface Settings {

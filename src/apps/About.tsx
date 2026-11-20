@@ -23,7 +23,7 @@ export function AboutApp() {
       </div>
       <div className="text-center -mt-2">
         <div className="text-[24px] font-semibold tracking-tight">DeltaOS</div>
-        <div className="text-[12.5px] text-muted">Version 1.1 “Aurora” · Build 2026.11</div>
+        <div className="text-[12.5px] text-muted">Version 1.2 “Aurora” · Build 2026.11</div>
       </div>
       <div className="m-6 rounded-2xl bg-surface border border-line divide-y divide-[var(--os-border)]">
         {rows.map((r) => (

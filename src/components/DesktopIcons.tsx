@@ -11,7 +11,7 @@ import { FileGlyph } from "../lib/fileIcons";
 import { InlineInput } from "./ui";
 
 const DESKTOP = `${HOME}/Desktop`;
-const DESKTOP_APPS: AppId[] = ["files", "browser", "terminal", "editor", "folio", "settings"];
+const DESKTOP_APPS: AppId[] = ["files", "browser", "games", "terminal", "editor", "folio", "settings"];
 const CELL_W = 92;
 const CELL_H = 100;
 

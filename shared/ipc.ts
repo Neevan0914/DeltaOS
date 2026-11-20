@@ -31,6 +31,7 @@ export interface ClaudeStatus {
 export type BrowserEvent =
   | { type: "open-tab"; guestId: number; url: string }
   | { type: "shortcut"; guestId: number; combo: string }
+  | { type: "games-blocked"; guestId: number; url: string }
   | {
       type: "context-menu";
       guestId: number;
