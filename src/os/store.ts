@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { createDefaultFs, type VDir } from "./vfs";
+import { blobIds, createDefaultFs, type VDir } from "./vfs";
 
 export type AppId = "terminal" | "files" | "editor" | "folio" | "browser" | "games" | "settings" | "about" | "calculator";
 export type Phase = "boot" | "login" | "desktop" | "shutdown" | "restart";
@@ -146,7 +146,10 @@ export function persistNow() {
   clearTimeout(persistTimer);
   const json = JSON.stringify({ version: 1, settings: state.settings, fs: state.fs });
   try {
-    if (window.deltaos) void window.deltaos.saveState(json);
+    if (window.deltaos) {
+      void window.deltaos.saveState(json);
+      window.deltaos.downloads.collectGarbage(blobIds(state.fs));
+    }
     else localStorage.setItem(STORAGE_KEY, json);
   } catch {
     /* storage unavailable: keep running in memory */

@@ -6,7 +6,7 @@ import {
 import type { AppProps } from "../components/AppHost";
 import { getState, notify, setFs, updateSettings, useOS } from "../os/store";
 import { openApp, updateWindow } from "../os/windows";
-import { basename, dirname, extname, FsError, getNode, HOME, mkdir, prettyPath, resolvePath, writeFile } from "../os/vfs";
+import { basename, dirname, extname, FsError, getNode, HOME, isBinary, mkdir, prettyPath, resolvePath, writeFile } from "../os/vfs";
 import { renderMarkdown } from "../lib/markdown";
 import { isDocument } from "../os/open";
 import { showContextMenu } from "../os/contextMenu";
@@ -20,7 +20,10 @@ const countWords = (s: string) => (s.match(/[\p{L}\p{N}’'-]+/gu) ?? []).length
 export function Folio({ win }: AppProps) {
   const fs = useOS((s) => s.fs);
   const prefs = useOS((s) => s.settings.folio);
-  const [path, setPath] = useState<string | null>((win.props.path as string) ?? null);
+  const [path, setPath] = useState<string | null>(() => {
+    const p = (win.props.path as string) ?? null;
+    return p && isBinary(getNode(getState().fs, p)) ? null : p;
+  });
   const [text, setText] = useState(() => {
     const n = path ? getNode(getState().fs, path) : null;
     return n?.type === "file" ? n.content : "";
@@ -67,6 +70,7 @@ export function Folio({ win }: AppProps) {
   const load = (p: string) => {
     const n = getNode(getState().fs, p);
     if (n?.type !== "file") return notify("Folio", `Can't open ${p}`, "error");
+    if (n.blob) return notify("Folio", `${basename(p)} is a binary file and can't be edited`, "error");
     setPath(p);
     setText(n.content);
     setSaved(n.content);

@@ -25,7 +25,7 @@ export function QuickOpen({
       for (const [n, c] of Object.entries(d.children)) {
         const p = `${base}/${n}`;
         if (c.type === "dir") walk(c, p);
-        else if (filter(p)) out.push(p);
+        else if (!c.blob && filter(p)) out.push(p);
       }
     };
     walk(fs, "");

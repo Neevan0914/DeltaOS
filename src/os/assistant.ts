@@ -155,6 +155,7 @@ const TOOLS = {
         if (!node) throw new FsError(`No such file or directory: ${p}`);
         if (app === "files" && node.type !== "dir") throw new FsError(`Not a folder: ${p}`);
         if ((app === "editor" || app === "folio") && node.type !== "file") throw new FsError(`Not a file: ${p}`);
+        if ((app === "editor" || app === "folio") && node.type === "file" && node.blob) throw new FsError(`${p} is a binary file and can't be edited`);
         openApp(app, app === "files" ? { cwd: p } : { path: p });
       } else openApp(app);
       return `Opened ${APPS[app].title}.`;
@@ -198,6 +199,7 @@ const TOOLS = {
       const node = getNode(getState().fs, fsPath(path));
       if (!node) throw new FsError(`No such file: ${path}`);
       if (node.type !== "file") throw new FsError(`Is a directory: ${path}`);
+      if (node.blob) throw new FsError(`${path} is a binary file (${node.blob.mime}, ${node.blob.size} bytes) and can't be read as text`);
       return node.content;
     },
     label: ({ path }) => `Read ${path}`,

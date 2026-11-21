@@ -1,4 +1,5 @@
-import { extname, basename } from "./vfs";
+import { extname, basename, getNode } from "./vfs";
+import { getState, notify } from "./store";
 import { openApp } from "./windows";
 
 /** File types that open in Folio (the writing app). Everything else opens in Code. */
@@ -12,8 +13,20 @@ export function isDocument(path: string) {
 
 export const isWebPage = (path: string) => ["html", "htm"].includes(extname(basename(path)));
 
+const MEDIA_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "mp4", "webm", "mp3", "wav", "ogg", "m4a"]);
+/** Downloaded binary files DeltaOS can show (in Tesseract). */
+export const isViewableBinary = (path: string) => MEDIA_EXTS.has(extname(basename(path)));
+
 /** Open a file in the right app for its type: documents in Folio, web pages in Tesseract, code in Code. */
 export function openPath(path: string) {
+  const node = getNode(getState().fs, path);
+  if (node?.type === "file" && node.blob) {
+    if (isViewableBinary(path)) return openApp("browser", { file: path });
+    notify(`DeltaOS can't open ${basename(path)}`, "To use it on your PC, right-click it in Files → Export to this PC…", "info");
+    // Show it in Files, unless a Files window is already open (you probably double-clicked it there).
+    if (!getState().windows.some((w) => w.app === "files" && !w.closing)) openApp("files", { cwd: path.slice(0, path.lastIndexOf("/")) || "/" });
+    return;
+  }
   if (isWebPage(path)) return openApp("browser", { file: path });
   return isDocument(path) ? openApp("folio", { path }) : openApp("editor", { path });
 }

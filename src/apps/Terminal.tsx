@@ -8,7 +8,7 @@ import { openPath } from "../os/open";
 import { ACCENTS, accentName } from "../os/theme";
 import { WALLPAPERS, wallpaperById } from "../os/wallpapers";
 import {
-  basename, dirname, formatSize, FsError, getNode, HOME, listDir, mkdir, move, nodeSize, prettyPath, remove, rename, resolvePath, writeFile,
+  basename, dirname, formatSize, FsError, getNode, HOME, listDir, mkdir, move, nodeSize, prettyPath, remove, rename, resolvePath, touch, writeFile,
   type VDir,
 } from "../os/vfs";
 
@@ -191,6 +191,7 @@ export function Terminal({ win }: AppProps) {
               const node = getNode(fs(), abs(p));
               if (!node) throw new FsError(`cat: ${p}: No such file or directory`);
               if (node.type === "dir") throw new FsError(`cat: ${p}: Is a directory`);
+              if (node.blob) throw new FsError(`cat: ${p}: binary file (${formatSize(node.blob.size)}); try 'open ${p}'`);
               return node.content.replace(/\n$/, "");
             })
             .join("\n");
@@ -206,7 +207,7 @@ export function Terminal({ win }: AppProps) {
           for (const p of pos) {
             const n = getNode(fs(), abs(p));
             if (n?.type === "dir") continue;
-            setFs((r) => writeFile(r, abs(p), n?.type === "file" ? n.content : ""));
+            setFs((r) => touch(r, abs(p)));
           }
           break;
         }
@@ -317,6 +318,7 @@ export function Terminal({ win }: AppProps) {
           const p = abs(pos[0]);
           const n = getNode(fs(), p);
           if (n?.type === "dir") throw new FsError(`${cmd}: ${pos[0]}: Is a directory`);
+          if (n?.type === "file" && n.blob) throw new FsError(`${cmd}: ${pos[0]}: binary file; try 'open ${pos[0]}'`);
           if (!n) setFs((r) => writeFile(r, p, ""));
           openApp("folio", { path: p });
           break;
@@ -339,6 +341,7 @@ export function Terminal({ win }: AppProps) {
           const p = abs(pos[0]);
           const n = getNode(fs(), p);
           if (n?.type === "dir") throw new FsError(`${cmd}: ${pos[0]}: Is a directory`);
+          if (n?.type === "file" && n.blob) throw new FsError(`${cmd}: ${pos[0]}: binary file; try 'open ${pos[0]}'`);
           if (!n) setFs((r) => writeFile(r, p, ""));
           openApp("editor", { path: p });
           break;

@@ -9,6 +9,7 @@ import { closeWindow, focusWindow, updateWindow } from "../os/windows";
 import { showContextMenu, type MenuItem } from "../os/contextMenu";
 import { toUrl } from "../os/open";
 import { TesseractIcon } from "../components/TesseractIcon";
+import { DownloadsButton } from "../components/DownloadsPanel";
 import { ALLOW_POPUPS, hasWebview, htmlToUrl, repaint, type WebviewEl } from "../lib/webview";
 import { basename, getNode, HOME, prettyPath, resolvePath } from "../os/vfs";
 
@@ -55,6 +56,10 @@ function filePage(input: string): { url: string; filePath: string; label: string
   const path = resolvePath(HOME, q);
   const node = getNode(getState().fs, path);
   if (node?.type !== "file") return null;
+  if (node.blob) {
+    // Downloaded media is served from DeltaOS's private store by the main process.
+    return { url: `deltaos-file://blob/${node.blob.id}/${encodeURIComponent(basename(path))}`, filePath: path, label: prettyPath(path) };
+  }
   const isHtml = /\.html?$/i.test(path);
   const html = isHtml ? node.content : `<!doctype html><meta charset="utf-8"><title>${basename(path)}</title><pre style="font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap;margin:16px">${node.content.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`;
   return { url: htmlToUrl(html), filePath: path, label: prettyPath(path) };
@@ -280,7 +285,8 @@ export function Browser({ win }: AppProps) {
     ]);
   };
 
-  const shownAddr = addr ?? (active.url.startsWith("data:") ? active.label ?? "Inline page" : active.url);
+  const local = (u: string) => u.startsWith("data:") || u.startsWith("deltaos-file:");
+  const shownAddr = addr ?? (local(active.url) ? active.label ?? "Inline page" : active.url);
   const secure = active.url.startsWith("https://");
 
   return (
@@ -369,6 +375,7 @@ export function Browser({ win }: AppProps) {
             )}
           </div>
         </form>
+        <DownloadsButton />
         <NavBtn label="Menu" onClick={menu}><MoreVertical size={16} /></NavBtn>
       </div>
 
@@ -458,7 +465,7 @@ function Guest({ tab, active, register, patch }: { tab: Tab; active: boolean; re
           url,
           canBack: el.canGoBack(),
           canFwd: el.canGoForward(),
-          ...(url.startsWith("data:") ? {} : { filePath: undefined, label: undefined }),
+          ...(url.startsWith("data:") || url.startsWith("deltaos-file:") ? {} : { filePath: undefined, label: undefined }),
         });
       } catch {
         /* guest not ready */

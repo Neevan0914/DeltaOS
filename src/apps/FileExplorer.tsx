@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowUp, ChevronRight, Code2, Download, FileCode2, FilePlus, FolderPlus, HardDrive, Home, Image, LayoutGrid,
-  List, Monitor, Feather, Globe, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
+  List, Monitor, Feather, Globe, HardDriveDownload, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
 } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { notify, setFs, useOS } from "../os/store";
 import { openApp, updateWindow } from "../os/windows";
 import { showContextMenu } from "../os/contextMenu";
-import { openPath } from "../os/open";
+import { isViewableBinary, openPath } from "../os/open";
 import {
   basename, dirname, formatSize, FsError, getNode, HOME, listDir, mkdir, move, nodeSize, remove, rename, uniqueName, writeFile, extname,
   type VDir, type VNode,
@@ -133,11 +133,23 @@ export function FileExplorer({ win }: AppProps) {
   })();
   const selNode = selected ? dirNode?.children[selected] : undefined;
 
+  const exportFile = async (name: string, blobId: string) => {
+    const r = await window.deltaos?.downloads.exportFile(blobId, name);
+    if (r?.ok) notify("Exported to your PC", r.path ?? name, "success");
+    else if (r && r.error !== "cancelled") notify("Export failed", r.error ?? "", "error");
+  };
+
   const itemMenu = (e: React.MouseEvent, name: string, n: VNode) => {
     setSelected(name);
     showContextMenu(e, [
       { label: "Open", icon: ExternalLink, onClick: () => openEntry(name, n) },
-      ...(n.type === "file"
+      ...(n.type === "file" && n.blob
+        ? [
+            // Downloaded binary files: view (if DeltaOS can) or deliberately copy out to the real PC.
+            ...(isViewableBinary(name) ? [{ label: "Open in Tesseract", icon: Globe, onClick: () => openApp("browser", { file: pathOf(name) }) }] : []),
+            { label: "Export to this PC…", icon: HardDriveDownload, onClick: () => exportFile(name, n.blob!.id) },
+          ]
+        : n.type === "file"
         ? [
             { label: "Open with Code", icon: FileCode2, onClick: () => openApp("editor", { path: pathOf(name) }) },
             { label: "Open with Folio", icon: Feather, onClick: () => openApp("folio", { path: pathOf(name) }) },

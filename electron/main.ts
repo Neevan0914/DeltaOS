@@ -4,9 +4,11 @@ import { join } from "node:path";
 import * as claude from "./claude";
 import { log, logDir } from "./log";
 import { GAMES_PARTITION, isGamesUrl } from "../shared/games";
+import { cancelDownload, collectGarbage, exportBlob, registerBlobScheme, setupDownloads } from "./downloads";
 import type { ClaudeTurnRequest } from "../shared/ipc";
 
 app.setName("DeltaOS");
+registerBlobScheme();
 // Keep user data next to other apps (%APPDATA%/DeltaOS) so the portable exe stays a single file.
 const statePath = () => join(app.getPath("userData"), "deltaos-state.json");
 
@@ -42,7 +44,7 @@ function createWindow() {
     prefs.contextIsolation = true;
     prefs.sandbox = true;
     prefs.webSecurity = true;
-    if (params.src && !/^(https?:|data:|about:blank)/i.test(params.src)) e.preventDefault();
+    if (params.src && !/^(https?:|data:|about:blank|deltaos-file:)/i.test(params.src)) e.preventDefault();
   });
 
   win.once("ready-to-show", () => win?.show());
@@ -84,6 +86,9 @@ ipcMain.on("app:reboot", () => {
 });
 ipcMain.on("app:toggle-fullscreen", () => win?.setFullScreen(!win.isFullScreen()));
 ipcMain.on("app:log", (_e, msg: string) => log("ui", String(msg).slice(0, 2000)));
+ipcMain.on("downloads:cancel", (_e, id: string) => cancelDownload(String(id)));
+ipcMain.handle("downloads:export", (_e, id: string, name: string) => exportBlob(win, String(id), String(name).replace(/[\\/:*?"<>|]+/g, "_")));
+ipcMain.on("downloads:gc", (_e, ids: unknown) => Array.isArray(ids) && collectGarbage(ids.map(String)));
 ipcMain.handle("app:open-logs", () => shell.openPath(logDir()));
 
 ipcMain.handle("claude:status", () => claude.status());
@@ -192,6 +197,7 @@ if (!single) {
   app.whenReady().then(async () => {
     log("---- DeltaOS start", { version: app.getVersion(), electron: process.versions.electron, chrome: process.versions.chrome, platform: `${process.platform} ${process.getSystemVersion()} ${process.arch}` });
     setupBrowserSession();
+    setupDownloads(() => win, ["persist:tesseract", GAMES_PARTITION, "deltaos-runner"]);
     createWindow();
     setTimeout(async () => {
       log("gpu features", app.getGPUFeatureStatus());

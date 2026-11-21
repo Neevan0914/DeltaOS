@@ -3,6 +3,13 @@ export interface VFile {
   type: "file";
   content: string;
   mtime: number;
+  /** Binary files (downloads) keep their bytes in DeltaOS's private blob store; content is "". */
+  blob?: BlobRef;
+}
+export interface BlobRef {
+  id: string;
+  size: number;
+  mime: string;
 }
 export interface VDir {
   type: "dir";
@@ -113,6 +120,34 @@ export function writeFile(root: VDir, path: string, content: string): VDir {
   });
 }
 
+/** Create a binary file whose bytes live in the blob store. */
+export function writeBlob(root: VDir, path: string, blob: BlobRef): VDir {
+  return withParent(root, path, (parent, name) => {
+    validName(name);
+    if (parent.children[name]?.type === "dir") throw new FsError(`Is a directory: ${name}`);
+    parent.children[name] = { type: "file", content: "", mtime: now(), blob };
+  });
+}
+
+/** Every blob id still referenced by the filesystem (anything else in the blob store is garbage). */
+export function blobIds(node: VNode, out: string[] = []): string[] {
+  if (node.type === "file") {
+    if (node.blob) out.push(node.blob.id);
+  } else for (const c of Object.values(node.children)) blobIds(c, out);
+  return out;
+}
+
+export const isBinary = (node: VNode | null | undefined): boolean => node?.type === "file" && !!node.blob;
+
+export function touch(root: VDir, path: string): VDir {
+  return withParent(root, path, (parent, name) => {
+    validName(name);
+    const n = parent.children[name];
+    if (n?.type === "dir") return;
+    parent.children[name] = n ? { ...n, mtime: now() } : { type: "file", content: "", mtime: now() };
+  });
+}
+
 export function remove(root: VDir, path: string, recursive = false): VDir {
   return withParent(root, path, (parent, name) => {
     const node = parent.children[name];
@@ -165,7 +200,7 @@ export function listDir(node: VDir): [string, VNode][] {
 }
 
 export function nodeSize(node: VNode): number {
-  if (node.type === "file") return new Blob([node.content]).size;
+  if (node.type === "file") return node.blob ? node.blob.size : new Blob([node.content]).size;
   return Object.values(node.children).reduce((s, c) => s + nodeSize(c), 0);
 }
 

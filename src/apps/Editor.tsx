@@ -3,7 +3,7 @@ import { Save, FilePlus2, FolderOpen, WrapText, Eye, Check, ChevronDown, Play, S
 import type { AppProps } from "../components/AppHost";
 import { getState, notify, setFs, useOS } from "../os/store";
 import { openApp, updateWindow } from "../os/windows";
-import { basename, dirname, FsError, getNode, HOME, mkdir, prettyPath, resolvePath, writeFile } from "../os/vfs";
+import { basename, dirname, FsError, getNode, HOME, isBinary, mkdir, prettyPath, resolvePath, writeFile } from "../os/vfs";
 import { CODE_LANGUAGES, highlight, languageOf, LANGUAGE_LABEL, TEMPLATES, type CodeLanguage } from "../lib/highlight";
 import { renderMarkdown } from "../lib/markdown";
 import { showContextMenu } from "../os/contextMenu";
@@ -27,7 +27,10 @@ export function Editor({ win }: AppProps) {
   const fs = useOS((s) => s.fs);
   const focused = useOS((s) => s.focusedId === win.id);
   const initialLang = (win.props.lang as CodeLanguage | undefined) ?? "py";
-  const [path, setPath] = useState<string | null>((win.props.path as string) ?? null);
+  const [path, setPath] = useState<string | null>(() => {
+    const p = (win.props.path as string) ?? null;
+    return p && isBinary(getNode(getState().fs, p)) ? null : p;
+  });
   const fileNode = path ? getNode(fs, path) : null;
   const [text, setText] = useState(() => (fileNode?.type === "file" ? fileNode.content : path ? "" : TEMPLATES[initialLang]));
   const [saved, setSaved] = useState(() => (path ? text : ""));
@@ -67,6 +70,7 @@ export function Editor({ win }: AppProps) {
   const loadFile = (p: string) => {
     const n = getNode(getState().fs, p);
     if (n?.type !== "file") return notify("Code", `Can't open ${p}`, "error");
+    if (n.blob) return notify("Code", `${basename(p)} is a binary file and can't be edited`, "error");
     setPath(p);
     setText(n.content);
     setSaved(n.content);

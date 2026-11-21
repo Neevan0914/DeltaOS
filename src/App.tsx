@@ -9,6 +9,7 @@ import { ContextMenuHost } from "./components/ContextMenuHost";
 import { DeltaLogo } from "./components/Logo";
 import { openApp } from "./os/windows";
 import { refreshStatus } from "./os/assistant";
+import { initDownloads } from "./os/downloads";
 
 export function App() {
   const phase = useOS((s) => s.phase);
@@ -17,6 +18,7 @@ export function App() {
 
   useEffect(() => {
     void loadPersisted();
+    initDownloads();
     void refreshStatus();
   }, []);
 

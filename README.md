@@ -51,6 +51,14 @@ On GitHub, open `DeltaOS.exe` and click **Download raw file** (the ↓ icon). `n
 - **Claude assistant.** Open it with the taskbar button or **Ctrl+Space**. Claude can answer
   questions and control the OS through tools: theme, accent, wallpaper and preferences, opening
   and closing apps, opening web pages in Tesseract, and reading, writing and organising files.
+- **Downloads stay inside DeltaOS.** Anything downloaded in Tesseract or Games is saved without a
+  Windows "Save as" dialog into DeltaOS's own `~/Downloads`, never your PC's Downloads folder.
+  Tesseract has a downloads button with progress and cancel. Small text files become normal files
+  you can open in Code, Folio or Terminal. Images, video and audio open in Tesseract. Other files
+  (zips, installers) can be copied to your real PC only on request: right-click → **Export to this
+  PC…** in Files. The bytes of binary downloads live in DeltaOS's private data folder
+  (`%APPDATA%\DeltaOS\vfs-blobs`), like a virtual disk, and are removed when you delete the file
+  inside DeltaOS.
 - **Persistence.** Settings and the virtual filesystem are saved automatically to
   `%APPDATA%\DeltaOS\deltaos-state.json`.
 

@@ -43,6 +43,11 @@ export type BrowserEvent =
       isEditable: boolean;
     };
 
+export type DownloadEvent =
+  | { type: "started"; id: string; filename: string; url: string; total: number; source: "tesseract" | "games" }
+  | { type: "progress"; id: string; received: number; total: number; paused: boolean }
+  | { type: "done"; id: string; state: "completed" | "cancelled" | "interrupted"; size: number; mime: string; text?: string };
+
 export interface DeltaBridge {
   platform: string;
   versions: { electron: string; chrome: string; node: string };
@@ -54,6 +59,12 @@ export interface DeltaBridge {
   log(message: string): void;
   openLogs(): Promise<string>;
   onBrowserEvent(cb: (e: BrowserEvent) => void): () => void;
+  downloads: {
+    onEvent(cb: (e: DownloadEvent) => void): () => void;
+    cancel(id: string): void;
+    exportFile(blobId: string, name: string): Promise<{ ok: boolean; path?: string; error?: string }>;
+    collectGarbage(referencedBlobIds: string[]): void;
+  };
   claude: {
     status(): Promise<ClaudeStatus>;
     setKey(key: string): Promise<ClaudeStatus>;
