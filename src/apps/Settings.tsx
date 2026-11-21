@@ -377,7 +377,7 @@ function About() {
       <div className="flex flex-col items-center text-center py-6">
         <DeltaLogo size={84} className="anim-glow" />
         <div className="text-[26px] font-semibold mt-4">DeltaOS</div>
-        <div className="text-[13px] text-muted">Version 1.3 “Aurora”</div>
+        <div className="text-[13px] text-muted">Version 1.4 “Aurora”</div>
       </div>
       <Card>
         <Row title="Runtime" sub={v ? `Electron ${v.electron} · Chromium ${v.chrome} · Node ${v.node}` : "Web preview"}><span /></Row>

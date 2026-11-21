@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { blobIds, createDefaultFs, type VDir } from "./vfs";
 
-export type AppId = "terminal" | "files" | "editor" | "folio" | "browser" | "games" | "settings" | "about" | "calculator";
+export type AppId = "terminal" | "files" | "editor" | "folio" | "browser" | "games" | "store" | "webapp" | "settings" | "about" | "calculator";
 export type Phase = "boot" | "login" | "desktop" | "shutdown" | "restart";
 
 export interface Settings {
@@ -16,6 +16,8 @@ export interface Settings {
   terminalTheme: TerminalTheme;
   browser: BrowserSettings;
   folio: FolioSettings;
+  /** App Store apps the user installed (catalog ids). */
+  installedApps: string[];
 }
 export interface Bookmark {
   title: string;
@@ -94,6 +96,7 @@ export const DEFAULT_SETTINGS: Settings = {
     ],
   },
   folio: { font: "serif", size: 18, width: "narrow" },
+  installedApps: [],
 };
 
 let state: OSState = {

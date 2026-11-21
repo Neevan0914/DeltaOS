@@ -32,6 +32,12 @@ On GitHub, open `DeltaOS.exe` and click **Download raw file** (the ↓ icon). `n
     and a right-click menu. Pages open in a sandboxed `<webview>` with its own session.
     HTML files from DeltaOS open rendered here: double-click one in Files, type its path
     (e.g. `~/Code/index.html`) in the address bar, or press the globe button in Code.
+  - **App Store:** 24 free web apps (VS Code for the Web, Microsoft 365, Photopea, Canva, Excalidraw,
+    Discord, WhatsApp Web, YouTube, Lichess, Duolingo, Claude and more). Installing one puts it on
+    the desktop and in Start, and it opens in its own window with no browser bars and its own
+    sign-in, separate from Tesseract. Links to other sites open in Tesseract, sign-in pop-ups open
+    as small login windows, and uninstalling removes the app's data. These are web apps; Windows
+    programs and DRM-only services (Spotify, Netflix) can't run in DeltaOS.
   - **Games:** the Anyware Studios itch.io page (anyware-studios.itch.io) as its own app, with no
     browser controls apart from a small back/home button once you open a game. It stays locked to
     that page and its game pages: links to the rest of itch.io or other sites are refused (enforced
@@ -59,6 +65,11 @@ On GitHub, open `DeltaOS.exe` and click **Download raw file** (the ↓ icon). `n
   PC…** in Files. The bytes of binary downloads live in DeltaOS's private data folder
   (`%APPDATA%\DeltaOS\vfs-blobs`), like a virtual disk, and are removed when you delete the file
   inside DeltaOS.
+- **Zip files.** Double-click a `.zip`, right-click → **Extract here** in Files, or run `unzip` in
+  Terminal. Extracted HTML5 games and web pages run in Tesseract: DeltaOS serves each folder like a
+  small web server, so scripts, images and WebAssembly next to `index.html` load (with
+  cross-origin isolation for threaded engines such as Godot 4). A page can only read files from its
+  own folder.
 - **Persistence.** Settings and the virtual filesystem are saved automatically to
   `%APPDATA%\DeltaOS\deltaos-state.json`.
 

@@ -9,6 +9,8 @@ import { CalculatorApp } from "../apps/Calculator";
 import { Browser } from "../apps/Browser";
 import { Folio } from "../apps/Folio";
 import { Games } from "../apps/Games";
+import { Store } from "../apps/Store";
+import { WebApp } from "../apps/WebApp";
 
 export interface AppProps {
   win: WinState;
@@ -21,6 +23,8 @@ const COMPONENTS: Record<AppId, ComponentType<AppProps>> = {
   folio: Folio,
   browser: Browser,
   games: Games,
+  store: Store,
+  webapp: WebApp,
   settings: SettingsApp,
   about: AboutApp,
   calculator: CalculatorApp,

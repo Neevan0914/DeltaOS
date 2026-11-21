@@ -32,6 +32,7 @@ export type BrowserEvent =
   | { type: "open-tab"; guestId: number; url: string }
   | { type: "shortcut"; guestId: number; combo: string }
   | { type: "games-blocked"; guestId: number; url: string }
+  | { type: "webapp-external"; guestId: number; url: string }
   | {
       type: "context-menu";
       guestId: number;
@@ -47,6 +48,11 @@ export type DownloadEvent =
   | { type: "started"; id: string; filename: string; url: string; total: number; source: "tesseract" | "games" }
   | { type: "progress"; id: string; received: number; total: number; paused: boolean }
   | { type: "done"; id: string; state: "completed" | "cancelled" | "interrupted"; size: number; mime: string; text?: string };
+
+export type VfsReadReply = { kind: "text"; text: string } | { kind: "blob"; id: string } | { kind: "missing" };
+export type ExtractResult =
+  | { ok: true; entries: { path: string; text?: string; blob?: { id: string; size: number; mime: string } }[] }
+  | { ok: false; error: string };
 
 export interface DeltaBridge {
   platform: string;
@@ -64,6 +70,14 @@ export interface DeltaBridge {
     cancel(id: string): void;
     exportFile(blobId: string, name: string): Promise<{ ok: boolean; path?: string; error?: string }>;
     collectGarbage(referencedBlobIds: string[]): void;
+    extract(blobId: string): Promise<ExtractResult>;
+  };
+  webapps: {
+    prepare(id: string): Promise<boolean>;
+    clearData(id: string): Promise<boolean>;
+  };
+  vfs: {
+    onRead(cb: (req: { reqId: string; host: string; path: string }) => VfsReadReply): () => void;
   };
   claude: {
     status(): Promise<ClaudeStatus>;

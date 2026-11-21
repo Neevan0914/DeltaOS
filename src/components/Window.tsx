@@ -171,7 +171,7 @@ export function Window({ win, children }: { win: WinState; children: ReactNode }
               focused ? "opacity-100" : "opacity-55"
             }`}
           >
-            <AppIcon app={win.app} size={16} radius={4} />
+            <AppIcon app={win.app} webapp={win.props.webapp as string | undefined} size={16} radius={4} />
             <span className="text-[12.5px] font-medium truncate text-fg">{win.title}</span>
           </div>
         </div>

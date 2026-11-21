@@ -4,7 +4,8 @@ import { join } from "node:path";
 import * as claude from "./claude";
 import { log, logDir } from "./log";
 import { GAMES_PARTITION, isGamesUrl } from "../shared/games";
-import { cancelDownload, collectGarbage, exportBlob, registerBlobScheme, setupDownloads } from "./downloads";
+import { attachDownloads, cancelDownload, collectGarbage, exportBlob, extractArchive, registerBlobScheme, setupDownloads } from "./downloads";
+import { AUTH_HOSTS, hostMatches, webAppById, webAppPartition, type WebAppDef } from "../shared/webapps";
 import type { ClaudeTurnRequest } from "../shared/ipc";
 
 app.setName("DeltaOS");
@@ -88,6 +89,14 @@ ipcMain.on("app:toggle-fullscreen", () => win?.setFullScreen(!win.isFullScreen()
 ipcMain.on("app:log", (_e, msg: string) => log("ui", String(msg).slice(0, 2000)));
 ipcMain.on("downloads:cancel", (_e, id: string) => cancelDownload(String(id)));
 ipcMain.handle("downloads:export", (_e, id: string, name: string) => exportBlob(win, String(id), String(name).replace(/[\\/:*?"<>|]+/g, "_")));
+ipcMain.handle("webapp:prepare", (_e, id: string) => prepareWebApp(String(id)));
+ipcMain.handle("webapp:clear-data", async (_e, id: string) => {
+  if (!webAppById(String(id))) return false;
+  await session.fromPartition(webAppPartition(String(id))).clearStorageData();
+  log("cleared web app data", id);
+  return true;
+});
+ipcMain.handle("archive:extract", (_e, id: string) => extractArchive(String(id)));
 ipcMain.on("downloads:gc", (_e, ids: unknown) => Array.isArray(ids) && collectGarbage(ids.map(String)));
 ipcMain.handle("app:open-logs", () => shell.openPath(logDir()));
 
@@ -127,6 +136,50 @@ function lockGamesGuest(guest: WebContents) {
   });
 }
 
+/* ------------------------------- web apps ------------------------------- */
+
+const webAppBySession = new Map<Electron.Session, WebAppDef>();
+
+/** Configure an App Store app's own session (its logins and data are kept separate from Tesseract). */
+function prepareWebApp(id: string) {
+  const def = webAppById(id);
+  if (!def) return false;
+  const ses = session.fromPartition(webAppPartition(id));
+  if (!webAppBySession.has(ses)) {
+    ses.setUserAgent(ses.getUserAgent().replace(/\s(Electron|deltaos|DeltaOS)\/\S+/g, ""));
+    const allowed = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock"]);
+    ses.setPermissionRequestHandler((_wc, permission, cb) => cb(allowed.has(permission)));
+    attachDownloads(webAppPartition(id)); // downloads stay in DeltaOS too
+    webAppBySession.set(ses, def);
+  }
+  return true;
+}
+
+/** An app window keeps its own site; sign-in pages are allowed; any other link opens in Tesseract. */
+function lockWebAppGuest(guest: WebContents, def: WebAppDef) {
+  const inApp = (u: string) => hostMatches(u, def.hosts);
+  const isAuth = (u: string) => hostMatches(u, AUTH_HOSTS);
+  const external = (url: string) => {
+    if (/^https?:/i.test(url)) win?.webContents.send("browser:event", { type: "webapp-external", guestId: guest.id, url });
+  };
+  guest.setWindowOpenHandler(({ url }) => {
+    if (isAuth(url) && win) {
+      // Sign-in pop-ups need a real window (they talk back to the app that opened them).
+      return { action: "allow", overrideBrowserWindowOptions: { parent: win, width: 520, height: 700, autoHideMenuBar: true, title: `Sign in — ${def.name}` } };
+    }
+    if (inApp(url)) void guest.loadURL(url);
+    else external(url);
+    return { action: "deny" };
+  });
+  const guard = (e: Electron.Event, url: string) => {
+    if (inApp(url) || isAuth(url)) return;
+    e.preventDefault();
+    external(url);
+  };
+  guest.on("will-navigate", (e) => guard(e, e.url));
+  guest.on("will-redirect", (e) => e.isMainFrame && guard(e, e.url));
+}
+
 function wireGuest(guest: WebContents) {
   const host = () => win?.webContents;
   const short = (u: string) => (u.startsWith("data:") ? "data:(inline document)" : u.slice(0, 200));
@@ -136,7 +189,9 @@ function wireGuest(guest: WebContents) {
   guest.on("render-process-gone", (_e, d) => log("webview renderer gone", { reason: d.reason, exitCode: d.exitCode, url: short(guest.getURL()) }));
   guest.on("unresponsive", () => log("webview unresponsive", short(guest.getURL())));
   guest.on("did-finish-load", () => log("webview loaded", short(guest.getURL())));
-  if (guest.session === session.fromPartition(GAMES_PARTITION)) lockGamesGuest(guest);
+  const app = webAppBySession.get(guest.session);
+  if (app) lockWebAppGuest(guest, app);
+  else if (guest.session === session.fromPartition(GAMES_PARTITION)) lockGamesGuest(guest);
   else
     guest.setWindowOpenHandler(({ url }) => {
       if (/^https?:/i.test(url)) host()?.send("browser:event", { type: "open-tab", guestId: guest.id, url });

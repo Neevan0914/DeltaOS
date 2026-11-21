@@ -2,7 +2,8 @@ import { useState } from "react";
 import { BatteryFull, ChevronUp, Search, Volume2, Wifi } from "lucide-react";
 import { APPS, PINNED } from "../apps/registry";
 import { setState, useOS, type AppId } from "../os/store";
-import { taskbarActivate, TASKBAR_H, openApp, closeApp } from "../os/windows";
+import { taskbarActivate, TASKBAR_H, openApp, closeApp, closeWindow, focusWindow, minimizeWindow } from "../os/windows";
+import { webAppById } from "../os/webapps";
 import { toggleAssistant } from "../os/assistant";
 import { formatTime, useClock } from "../lib/useClock";
 import { AppIcon } from "./AppIcon";
@@ -20,9 +21,12 @@ export function Taskbar() {
   const now = useClock();
   const [calOpen, setCalOpen] = useState(false);
 
-  const running = new Set(windows.filter((w) => !w.closing).map((w) => w.app));
+  const running = new Set(windows.filter((w) => !w.closing && w.app !== "webapp").map((w) => w.app));
   const apps: AppId[] = [...PINNED, ...[...running].filter((a) => !PINNED.includes(a))];
-  const focusedApp = windows.find((w) => w.id === focusedId && !w.minimized)?.app;
+  const focusedWin = windows.find((w) => w.id === focusedId && !w.minimized);
+  const focusedApp = focusedWin?.app;
+  // Each open App Store app gets its own taskbar button.
+  const runningWebApps = [...new Set(windows.filter((w) => w.app === "webapp" && !w.closing).map((w) => String(w.props.webapp)))];
 
   return (
     <>
@@ -62,6 +66,21 @@ export function Taskbar() {
                 }
               >
                 <AppIcon app={app} size={30} />
+              </TaskButton>
+            );
+          })}
+          {runningWebApps.map((id) => {
+            const w = windows.find((x) => x.app === "webapp" && x.props.webapp === id && !x.closing)!;
+            const def = webAppById(id);
+            return (
+              <TaskButton
+                key={`web:${id}`}
+                label={def?.name ?? "App"}
+                onClick={() => (focusedWin?.id === w.id ? minimizeWindow(w.id) : focusWindow(w.id))}
+                indicator={focusedWin?.id === w.id ? "focused" : "running"}
+                onContextMenu={(e) => showContextMenu(e, [{ label: "Close window", icon: X, onClick: () => closeWindow(w.id) }])}
+              >
+                <AppIcon app="webapp" webapp={id} size={30} />
               </TaskButton>
             );
           })}

@@ -30,6 +30,8 @@ export function Desktop({ onPower }: { onPower: (p: Phase | "lock") => void }) {
     window.addEventListener("keydown", onKey);
     // System shortcuts pressed while a web page has focus arrive from the main process.
     const off = window.deltaos?.onBrowserEvent((ev) => {
+      // An App Store app followed a link to another site: open it in Tesseract.
+      if (ev.type === "webapp-external") return void openApp("browser", { url: ev.url });
       if (ev.type !== "shortcut") return;
       if (ev.combo === "ctrl+space") toggleAssistant();
       if (ev.combo === "ctrl+alt+t") openApp("terminal");

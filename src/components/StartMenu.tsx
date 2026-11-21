@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Lock, Power, RotateCcw, Search, ChevronRight } from "lucide-react";
-import { APPS } from "../apps/registry";
-import { setState, useOS, type AppId, type Phase } from "../os/store";
+import { APPS, LAUNCHABLE } from "../apps/registry";
+import { installedApps, openWebApp } from "../os/webapps";
+import { setState, useOS, type Phase } from "../os/store";
 import { openApp } from "../os/windows";
 import { openPath } from "../os/open";
 import { sendMessage, toggleAssistant } from "../os/assistant";
@@ -51,7 +52,9 @@ export function StartMenu({ onPower }: { onPower: (p: Phase | "lock") => void })
     [allFiles],
   );
   const q = query.trim().toLowerCase();
-  const appHits = (Object.keys(APPS) as AppId[]).filter((a) => !q || APPS[a].title.toLowerCase().includes(q) || a.includes(q));
+  const installed = useOS((s) => s.settings.installedApps);
+  const appHits = LAUNCHABLE.filter((a) => !q || APPS[a].title.toLowerCase().includes(q) || a.includes(q));
+  const webHits = installedApps(installed).filter((w) => !q || w.name.toLowerCase().includes(q));
   const fileHits = q ? allFiles.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 6) : [];
 
   const openFile = (f: { path: string; node: VNode }) => {
@@ -80,6 +83,7 @@ export function StartMenu({ onPower }: { onPower: (p: Phase | "lock") => void })
               if (e.key !== "Enter" || !q) return;
               e.preventDefault();
               if (appHits[0]) openApp(appHits[0]);
+              else if (webHits[0]) openWebApp(webHits[0].id);
               else if (fileHits[0]) openFile(fileHits[0]);
               else askClaude();
             }}
@@ -90,12 +94,18 @@ export function StartMenu({ onPower }: { onPower: (p: Phase | "lock") => void })
       </div>
 
       <div className="px-5 pb-4 min-h-[300px]">
-        {appHits.length > 0 && <SectionTitle>{q ? "Apps" : "Pinned"}</SectionTitle>}
+        {appHits.length + webHits.length > 0 && <SectionTitle>{q ? "Apps" : "Pinned"}</SectionTitle>}
         <div className="grid grid-cols-6 gap-1">
           {appHits.map((a) => (
             <button key={a} onClick={() => openApp(a)} className="flex flex-col items-center gap-2 py-3 rounded-xl hover:bg-surface-2 transition-colors">
               <AppIcon app={a} size={40} />
               <span className="text-[11.5px] text-fg/90 truncate max-w-full px-1">{APPS[a].title}</span>
+            </button>
+          ))}
+          {webHits.map((w) => (
+            <button key={`web:${w.id}`} onClick={() => { setState({ startOpen: false }); openWebApp(w.id); }} className="flex flex-col items-center gap-2 py-3 rounded-xl hover:bg-surface-2 transition-colors">
+              <AppIcon app="webapp" webapp={w.id} size={40} />
+              <span className="text-[11.5px] text-fg/90 truncate max-w-full px-1">{w.name}</span>
             </button>
           ))}
         </div>

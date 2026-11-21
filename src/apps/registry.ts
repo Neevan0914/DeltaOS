@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Calculator, FolderOpen, Info, Settings2, SquareTerminal, FileCode2, Feather, Gamepad2 } from "lucide-react";
+import { Calculator, FolderOpen, Info, Settings2, SquareTerminal, FileCode2, Feather, Gamepad2, ShoppingBag, Globe } from "lucide-react";
 import type { AppId } from "../os/store";
 import { TesseractIcon } from "../components/TesseractIcon";
 
@@ -45,6 +45,27 @@ export const APPS: Record<AppId, AppMeta> = {
     gradient: "linear-gradient(135deg, #22d3ee 0%, #6366f1 55%, #7c3aed 100%)",
     size: { w: 1120, h: 720 },
     minSize: { w: 520, h: 360 },
+    singleton: false,
+  },
+  store: {
+    id: "store",
+    title: "App Store",
+    description: "Free web apps for DeltaOS",
+    icon: ShoppingBag,
+    gradient: "linear-gradient(135deg, #60a5fa 0%, #6366f1 55%, #a855f7 100%)",
+    size: { w: 1040, h: 700 },
+    minSize: { w: 600, h: 420 },
+    singleton: true,
+  },
+  // Window type for installed App Store apps; each window shows one app (see os/webapps.ts).
+  webapp: {
+    id: "webapp",
+    title: "App",
+    description: "An installed web app",
+    icon: Globe,
+    gradient: "linear-gradient(135deg, #94a3b8 0%, #475569 100%)",
+    size: { w: 1180, h: 760 },
+    minSize: { w: 480, h: 340 },
     singleton: false,
   },
   games: {
@@ -109,4 +130,7 @@ export const APPS: Record<AppId, AppMeta> = {
   },
 };
 
-export const PINNED: AppId[] = ["files", "browser", "games", "terminal", "editor", "folio", "settings", "calculator"];
+export const PINNED: AppId[] = ["files", "browser", "store", "games", "terminal", "editor", "folio", "settings", "calculator"];
+
+/** Built-in apps shown in Start (the "webapp" window type is not an app by itself). */
+export const LAUNCHABLE = (Object.keys(APPS) as AppId[]).filter((a) => a !== "webapp");

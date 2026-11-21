@@ -12,6 +12,7 @@ import { TesseractIcon } from "../components/TesseractIcon";
 import { DownloadsButton } from "../components/DownloadsPanel";
 import { ALLOW_POPUPS, hasWebview, htmlToUrl, repaint, type WebviewEl } from "../lib/webview";
 import { basename, getNode, HOME, prettyPath, resolvePath } from "../os/vfs";
+import { vfsUrl } from "../os/vfsServe";
 
 interface Tab {
   id: string;
@@ -56,11 +57,13 @@ function filePage(input: string): { url: string; filePath: string; label: string
   const path = resolvePath(HOME, q);
   const node = getNode(getState().fs, path);
   if (node?.type !== "file") return null;
+  const isHtml = /\.html?$/i.test(path);
+  // Web pages are served together with their folder, so CSS, scripts, images and WebAssembly next to them load.
+  if (isHtml && window.deltaos) return { url: vfsUrl(path), filePath: path, label: prettyPath(path) };
   if (node.blob) {
     // Downloaded media is served from DeltaOS's private store by the main process.
     return { url: `deltaos-file://blob/${node.blob.id}/${encodeURIComponent(basename(path))}`, filePath: path, label: prettyPath(path) };
   }
-  const isHtml = /\.html?$/i.test(path);
   const html = isHtml ? node.content : `<!doctype html><meta charset="utf-8"><title>${basename(path)}</title><pre style="font:13px/1.5 ui-monospace,monospace;white-space:pre-wrap;margin:16px">${node.content.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>`;
   return { url: htmlToUrl(html), filePath: path, label: prettyPath(path) };
 }

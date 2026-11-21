@@ -29,6 +29,19 @@ const bridge: DeltaBridge = {
     cancel: (id) => ipcRenderer.send("downloads:cancel", id),
     exportFile: (blobId, name) => ipcRenderer.invoke("downloads:export", blobId, name),
     collectGarbage: (ids) => ipcRenderer.send("downloads:gc", ids),
+    extract: (blobId) => ipcRenderer.invoke("archive:extract", blobId),
+  },
+  webapps: {
+    prepare: (id) => ipcRenderer.invoke("webapp:prepare", id),
+    clearData: (id) => ipcRenderer.invoke("webapp:clear-data", id),
+  },
+  vfs: {
+    onRead: (cb) => {
+      const listener = (_e: IpcRendererEvent, req: { reqId: string; host: string; path: string }) =>
+        ipcRenderer.send("vfs:read-reply", req.reqId, cb(req));
+      ipcRenderer.on("vfs:read", listener);
+      return () => ipcRenderer.removeListener("vfs:read", listener);
+    },
   },
   claude: {
     status: () => ipcRenderer.invoke("claude:status"),

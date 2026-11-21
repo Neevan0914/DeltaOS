@@ -1,5 +1,16 @@
 import { extname, basename, getNode } from "./vfs";
 import { getState, notify } from "./store";
+import { extractZip, isZip } from "./archive";
+import { updateWindow, focusWindow } from "./windows";
+
+/** Show a folder in the most recent Files window, or a new one. */
+export function showFolder(dir: string) {
+  const w = getState().windows.filter((x) => x.app === "files" && !x.closing).sort((a, b) => b.z - a.z)[0];
+  if (w) {
+    updateWindow(w.id, { props: { ...w.props, cwd: dir } });
+    focusWindow(w.id);
+  } else openApp("files", { cwd: dir });
+}
 import { openApp } from "./windows";
 
 /** File types that open in Folio (the writing app). Everything else opens in Code. */
@@ -22,6 +33,12 @@ export function openPath(path: string) {
   const node = getNode(getState().fs, path);
   if (node?.type === "file" && node.blob) {
     if (isViewableBinary(path)) return openApp("browser", { file: path });
+    if (isWebPage(path)) return openApp("browser", { file: path });
+    if (isZip(path)) {
+      // Like a real OS: opening a zip unpacks it and shows the folder.
+      void extractZip(path).then((dir) => dir && showFolder(dir));
+      return;
+    }
     notify(`DeltaOS can't open ${basename(path)}`, "To use it on your PC, right-click it in Files → Export to this PC…", "info");
     // Show it in Files, unless a Files window is already open (you probably double-clicked it there).
     if (!getState().windows.some((w) => w.app === "files" && !w.closing)) openApp("files", { cwd: path.slice(0, path.lastIndexOf("/")) || "/" });

@@ -5,6 +5,7 @@ import { closeWindow, openApp, updateWindow } from "../os/windows";
 import { APP_IDS, findWallpaper, setAccent, setTerminalTheme, setTheme, setWallpaper } from "../os/actions";
 import { sendMessage, toggleAssistant } from "../os/assistant";
 import { openPath } from "../os/open";
+import { extractZip } from "../os/archive";
 import { ACCENTS, accentName } from "../os/theme";
 import { WALLPAPERS, wallpaperById } from "../os/wallpapers";
 import {
@@ -39,6 +40,7 @@ const COMMANDS: Record<string, string> = {
   mv: "Move or rename  (mv <src> <dest>)",
   echo: "Print text, or write to a file with > / >>",
   tree: "Show a directory tree",
+  unzip: "Extract a .zip archive next to itself  (unzip <file.zip>)",
   clear: "Clear the screen  (Ctrl+L)",
   theme: "Change appearance  (theme dark|light | theme accent <color> | theme wallpaper <name> | theme terminal <name>)",
   open: "Open an app or a path  (open files | open ~/Documents)",
@@ -239,6 +241,16 @@ export function Terminal({ win }: AppProps) {
               return basename(dest) === basename(at) ? moved : rename(moved, at, basename(dest));
             });
           }
+          break;
+        }
+        case "unzip": {
+          if (!pos[0]) throw new FsError("unzip: usage: unzip <file.zip>");
+          const p = abs(pos[0]);
+          const n = getNode(fs(), p);
+          if (!n) throw new FsError(`unzip: ${pos[0]}: No such file`);
+          if (n.type !== "file" || !n.blob) throw new FsError(`unzip: ${pos[0]}: not a zip archive`);
+          out(`Extracting ${basename(p)}…`);
+          void extractZip(p).then((dir) => (dir ? out(`Extracted to ${prettyPath(dir)}`) : err(`unzip: couldn't extract ${pos[0]}`)));
           break;
         }
         case "echo":

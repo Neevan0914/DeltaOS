@@ -10,6 +10,7 @@ import { DeltaLogo } from "./components/Logo";
 import { openApp } from "./os/windows";
 import { refreshStatus } from "./os/assistant";
 import { initDownloads } from "./os/downloads";
+import { initVfsServe } from "./os/vfsServe";
 
 export function App() {
   const phase = useOS((s) => s.phase);
@@ -19,6 +20,7 @@ export function App() {
   useEffect(() => {
     void loadPersisted();
     initDownloads();
+    initVfsServe();
     void refreshStatus();
   }, []);
 

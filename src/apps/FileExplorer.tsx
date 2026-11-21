@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowUp, ChevronRight, Code2, Download, FileCode2, FilePlus, FolderPlus, HardDrive, Home, Image, LayoutGrid,
-  List, Monitor, Feather, Globe, HardDriveDownload, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
+  List, Monitor, Feather, Globe, HardDriveDownload, FolderArchive, FileText, Pencil, Search, SquareTerminal, Trash2, ExternalLink, Settings2,
 } from "lucide-react";
 import type { AppProps } from "../components/AppHost";
 import { notify, setFs, useOS } from "../os/store";
 import { openApp, updateWindow } from "../os/windows";
 import { showContextMenu } from "../os/contextMenu";
 import { isViewableBinary, openPath } from "../os/open";
+import { extractZip, isZip } from "../os/archive";
 import {
   basename, dirname, formatSize, FsError, getNode, HOME, listDir, mkdir, move, nodeSize, remove, rename, uniqueName, writeFile, extname,
   type VDir, type VNode,
@@ -147,6 +148,7 @@ export function FileExplorer({ win }: AppProps) {
         ? [
             // Downloaded binary files: view (if DeltaOS can) or deliberately copy out to the real PC.
             ...(isViewableBinary(name) ? [{ label: "Open in Tesseract", icon: Globe, onClick: () => openApp("browser", { file: pathOf(name) }) }] : []),
+            ...(isZip(name) ? [{ label: "Extract here", icon: FolderArchive, onClick: () => void extractZip(pathOf(name)) }] : []),
             { label: "Export to this PC…", icon: HardDriveDownload, onClick: () => exportFile(name, n.blob!.id) },
           ]
         : n.type === "file"

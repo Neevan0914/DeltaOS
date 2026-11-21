@@ -1,8 +1,11 @@
 import { APPS } from "../apps/registry";
 import type { AppId } from "../os/store";
+import { WEB_APP_LOOK } from "../os/webapps";
 
-export function AppIcon({ app, size = 40, radius }: { app: AppId; size?: number; radius?: number }) {
-  const meta = APPS[app];
+/** A built-in app's icon, or (with `webapp`) an installed App Store app's icon. */
+export function AppIcon({ app, size = 40, radius, webapp }: { app: AppId; size?: number; radius?: number; webapp?: string }) {
+  const look = app === "webapp" && webapp ? WEB_APP_LOOK[webapp] : undefined;
+  const meta = look ? { ...APPS.webapp, icon: look.icon, gradient: look.gradient } : APPS[app];
   const Icon = meta.icon;
   return (
     <div

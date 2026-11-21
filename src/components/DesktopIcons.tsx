@@ -6,19 +6,24 @@ import { openApp, TASKBAR_H } from "../os/windows";
 import { FsError, HOME, getNode, listDir, mkdir, remove, rename, uniqueName, writeFile, type VDir, type VNode } from "../os/vfs";
 import { showContextMenu } from "../os/contextMenu";
 import { openPath } from "../os/open";
+import { installedApps, openWebApp, uninstallApp } from "../os/webapps";
 import { AppIcon } from "./AppIcon";
 import { FileGlyph } from "../lib/fileIcons";
 import { InlineInput } from "./ui";
 
 const DESKTOP = `${HOME}/Desktop`;
-const DESKTOP_APPS: AppId[] = ["files", "browser", "games", "terminal", "editor", "folio", "settings"];
+const DESKTOP_APPS: AppId[] = ["files", "browser", "store", "games", "terminal", "editor", "folio", "settings"];
 const CELL_W = 92;
 const CELL_H = 100;
 
-type Entry = { key: string; label: string; kind: "app"; app: AppId } | { key: string; label: string; kind: "node"; node: VNode; path: string };
+type Entry =
+  | { key: string; label: string; kind: "app"; app: AppId }
+  | { key: string; label: string; kind: "web"; id: string }
+  | { key: string; label: string; kind: "node"; node: VNode; path: string };
 
 export function DesktopIcons() {
   const fs = useOS((s) => s.fs);
+  const installed = useOS((s) => s.settings.installedApps);
   const [selected, setSelected] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [rows, setRows] = useState(() => Math.max(1, Math.floor((window.innerHeight - TASKBAR_H - 24) / CELL_H)));
@@ -32,6 +37,7 @@ export function DesktopIcons() {
   const desk = getNode(fs, DESKTOP);
   const entries: Entry[] = [
     ...DESKTOP_APPS.map((app) => ({ key: `app:${app}`, label: APPS[app].title, kind: "app" as const, app })),
+    ...installedApps(installed).map((a) => ({ key: `web:${a.id}`, label: a.name, kind: "web" as const, id: a.id })),
     ...(desk?.type === "dir"
       ? listDir(desk)
           .filter(([n]) => !n.startsWith("."))
@@ -49,6 +55,7 @@ export function DesktopIcons() {
 
   const open = (e: Entry) => {
     if (e.kind === "app") openApp(e.app);
+    else if (e.kind === "web") openWebApp(e.id);
     else if (e.node.type === "dir") openApp("files", { cwd: e.path });
     else openPath(e.path);
   };
@@ -120,6 +127,7 @@ export function DesktopIcons() {
               setSelected(e.key);
               showContextMenu(ev, [
                 { label: "Open", icon: ExternalLink, onClick: () => open(e) },
+                ...(e.kind === "web" ? [{ separator: true }, { label: "Uninstall", icon: Trash2, danger: true, onClick: () => void uninstallApp(e.id) }] : []),
                 ...(e.kind === "node"
                   ? [
                       { label: "Rename", icon: Pencil, shortcut: "F2", onClick: () => setRenaming(e.key) },
@@ -131,7 +139,13 @@ export function DesktopIcons() {
             }}
           >
             <div className="drop-shadow-[0_4px_10px_rgb(0_0_0_/_0.35)]">
-              {e.kind === "app" ? <AppIcon app={e.app} size={46} /> : <FileGlyph name={e.label} node={e.node} size={48} />}
+              {e.kind === "app" ? (
+                <AppIcon app={e.app} size={46} />
+              ) : e.kind === "web" ? (
+                <AppIcon app="webapp" webapp={e.id} size={46} />
+              ) : (
+                <FileGlyph name={e.label} node={e.node} size={48} />
+              )}
             </div>
             {renaming === e.key && e.kind === "node" ? (
               <InlineInput
